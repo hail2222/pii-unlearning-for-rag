@@ -60,3 +60,7 @@ python analysis.py --results-dir "$RESULTS_DIR"
 echo ""
 echo "Running linear probe..."
 python linear_probe.py --results-dir "$RESULTS_DIR"
+
+echo ""
+echo "Running end-to-end pipeline evaluation..."
+python evaluate_pipeline.py --results-dir "$RESULTS_DIR"
