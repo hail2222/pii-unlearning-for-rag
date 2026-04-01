@@ -4,9 +4,8 @@ __pycache__/
 *.egg-info/
 .env
 
-# Results (too large for git)
+# Local test results (too large, not tracked)
 results/
-results_*/
 
 # Unnecessary scripts
 sync_to_server.sh
