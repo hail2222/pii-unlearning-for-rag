@@ -136,25 +136,39 @@ def evaluate(results_dir: str, method: str, probe_cv: int):
     b_results = load_condition(results_dir, "B_general")
     c_results = load_condition(results_dir, "C_no_context")
 
+    # Split A into PII-located (true positive candidates) and not-located (negative)
+    a_located     = [r for r in a_results if len(r.pii_token_positions) > 0]
+    a_not_located = [r for r in a_results if len(r.pii_token_positions) == 0]
+
     print(f"\n{'='*60}")
     print(f"End-to-end Pipeline Evaluation")
-    print(f"  Results dir : {results_dir}")
-    print(f"  Method      : {method.upper()}")
-    print(f"  Samples     : A={len(a_results)}, B={len(b_results)}, C={len(c_results)}")
+    print(f"  Results dir    : {results_dir}")
+    print(f"  Method         : {method.upper()}")
+    print(f"  A total        : {len(a_results)}")
+    print(f"    ├ PII located    : {len(a_located)}  ← positive (ground truth = leak)")
+    print(f"    └ PII not located: {len(a_not_located)}  ← negative (no leak occurred)")
+    print(f"  B (general)    : {len(b_results)}  ← negative")
+    print(f"  C (no context) : {len(c_results)}  ← negative")
     print(f"{'='*60}")
 
-    # Train probe on A vs B
+    # Train probe on A (all) vs B — same as before, probe learns PII hidden state shape
     probe = train_probe(a_results, b_results, method)
 
-    # Evaluate on all conditions
-    a_detected = [run_pipeline_on_sample(r, probe, method) for r in a_results]
-    b_detected = [run_pipeline_on_sample(r, probe, method) for r in b_results]
-    c_detected = [run_pipeline_on_sample(r, probe, method) for r in c_results]
+    # Run pipeline
+    a_loc_detected     = [run_pipeline_on_sample(r, probe, method) for r in a_located]
+    a_notloc_detected  = [run_pipeline_on_sample(r, probe, method) for r in a_not_located]
+    b_detected         = [run_pipeline_on_sample(r, probe, method) for r in b_results]
+    c_detected         = [run_pipeline_on_sample(r, probe, method) for r in c_results]
 
-    TP = sum(a_detected)
-    FN = len(a_results) - TP
-    FP = sum(b_detected) + sum(c_detected)
-    TN = (len(b_results) - sum(b_detected)) + (len(c_results) - sum(c_detected))
+    # Correct TP/FN/FP/TN
+    TP = sum(a_loc_detected)
+    FN = len(a_located) - TP
+    FP = sum(a_notloc_detected) + sum(b_detected) + sum(c_detected)
+    TN = (len(a_not_located) - sum(a_notloc_detected)) + \
+         (len(b_results) - sum(b_detected)) + \
+         (len(c_results) - sum(c_detected))
+
+    n_neg = len(a_not_located) + len(b_results) + len(c_results)
 
     precision = TP / (TP + FP) if (TP + FP) > 0 else 0.0
     recall    = TP / (TP + FN) if (TP + FN) > 0 else 0.0
@@ -163,12 +177,13 @@ def evaluate(results_dir: str, method: str, probe_cv: int):
     print(f"\n{'='*60}")
     print(f"Pipeline Results  (method={method.upper()})")
     print(f"{'='*60}")
-    print(f"  True Positive  (A detected as PII)       : {TP}/{len(a_results)}")
-    print(f"  False Negative (A missed)                : {FN}/{len(a_results)}")
-    print(f"  False Positive (B/C detected as PII)     : {FP}/{len(b_results)+len(c_results)}")
-    print(f"    ├ B (general knowledge) FP             : {sum(b_detected)}/{len(b_results)}")
-    print(f"    └ C (no context)        FP             : {sum(c_detected)}/{len(c_results)}")
-    print(f"  True Negative  (B/C correctly silent)    : {TN}/{len(b_results)+len(c_results)}")
+    print(f"  True Positive  (A-located detected)       : {TP}/{len(a_located)}")
+    print(f"  False Negative (A-located missed)         : {FN}/{len(a_located)}")
+    print(f"  False Positive (negative detected as PII) : {FP}/{n_neg}")
+    print(f"    ├ A-not-located FP                      : {sum(a_notloc_detected)}/{len(a_not_located)}")
+    print(f"    ├ B (general knowledge) FP              : {sum(b_detected)}/{len(b_results)}")
+    print(f"    └ C (no context)        FP              : {sum(c_detected)}/{len(c_results)}")
+    print(f"  True Negative  (negative correctly silent): {TN}/{n_neg}")
     print(f"\n  Precision : {precision:.4f}  (of all alerts, how many were real leaks)")
     print(f"  Recall    : {recall:.4f}  (of all real leaks, how many were caught)")
     print(f"  F1 Score  : {f1:.4f}")
