@@ -22,7 +22,7 @@ from sklearn.metrics import classification_report
 from config import RESULTS_DIR as _DEFAULT_RESULTS_DIR
 
 
-def load_hidden_states(results_dir: str = RESULTS_DIR):
+def load_hidden_states(results_dir: str = _DEFAULT_RESULTS_DIR):
     """
     Load red-flag hidden states from condition A and B pickle files.
     Returns X (n_samples, hidden_size) and y (n_samples,) arrays.
