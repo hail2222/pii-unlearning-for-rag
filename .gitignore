@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+
+# Results (too large for git)
+results/
+results_*/
+
+# Unnecessary scripts
+sync_to_server.sh
