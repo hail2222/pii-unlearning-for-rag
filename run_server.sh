@@ -15,16 +15,17 @@ DEVICE="cuda"
 MAX_SAMPLES=200
 PROBE_LAYER=24        # Llama-3.1-8B: 32 layers → upper-middle = 24
                       # Qwen2.5-7B  : 28 layers → upper-middle = 21
-RESULTS_DIR="results_llama8b"
+RESULTS_BASE="results_llama8b"
+RESULTS_DIR=""        # set after arg parsing (auto timestamp unless --results-dir given)
 RESUME=""
 
 # ── Parse optional overrides ──────────────────────────────────
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --model)       MODEL="$2";       shift 2 ;;
-        --max-samples) MAX_SAMPLES="$2"; shift 2 ;;
-        --probe-layer) PROBE_LAYER="$2"; shift 2 ;;
-        --results-dir) RESULTS_DIR="$2"; shift 2 ;;
+        --model)       MODEL="$2";        shift 2 ;;
+        --max-samples) MAX_SAMPLES="$2";  shift 2 ;;
+        --probe-layer) PROBE_LAYER="$2";  shift 2 ;;
+        --results-dir) RESULTS_DIR="$2";  shift 2 ;;  # explicit → no auto timestamp
         --resume)      RESUME="--resume"; shift ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
@@ -33,7 +34,12 @@ done
 # ── Auto-set probe layer for known models ─────────────────────
 if [[ "$MODEL" == *"Qwen2.5-7B"* ]]; then
     PROBE_LAYER=21
-    RESULTS_DIR="results_qwen7b"
+    RESULTS_BASE="results_qwen7b"
+fi
+
+# ── Auto-add timestamp to results dir (unless explicitly set) ─
+if [[ -z "$RESULTS_DIR" ]]; then
+    RESULTS_DIR="${RESULTS_BASE}_$(date +%Y%m%d_%H%M)"
 fi
 
 mkdir -p "$RESULTS_DIR"
