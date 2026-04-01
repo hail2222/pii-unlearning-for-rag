@@ -1,0 +1,32 @@
+
+==================================================
+Condition A Analysis: PII Located vs Not Located
+Results dir: results_llama8b_20260401_1429
+Total A samples: 2250
+  PII located    : 1664
+  PII not located: 586
+
+──────────────────────────────────────────────────
+  A — PII located  (n=1664)
+──────────────────────────────────────────────────
+  Mean entropy (avg over generation) : 0.1836 ± 0.1127
+  Min  entropy (lowest token)        : 0.0000 ± 0.0001
+  M1 fire rate                       : 0.812
+  M2 fire rate                       : 0.606
+  Entropy AT PII token positions     : 0.3742 ± 0.4044
+
+──────────────────────────────────────────────────
+  A — PII NOT located  (n=586)
+──────────────────────────────────────────────────
+  Mean entropy (avg over generation) : 0.6082 ± 0.2744
+  Min  entropy (lowest token)        : 0.0156 ± 0.0344
+  M1 fire rate                       : 0.654
+  M2 fire rate                       : 0.538
+
+==================================================
+Entropy at PII token positions vs surrounding tokens (located group):
+  At PII tokens     : 0.3742 ± 0.4044  (n=2607)
+  At non-PII tokens : 0.1780 ± 0.3695  (n=37722)
+
+Plot saved → results_llama8b_20260401_1429/analysis_pii_located_vs_not.png
+Plot saved → results_llama8b_20260401_1429/analysis_entropy_distribution.png
