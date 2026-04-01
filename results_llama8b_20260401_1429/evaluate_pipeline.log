@@ -1,0 +1,70 @@
+
+============================================================
+Running M1 (ΔH-drop) ...
+
+============================================================
+End-to-end Pipeline Evaluation
+  Results dir : results_llama8b_20260401_1429
+  Method      : M1
+  Samples     : A=2250, B=117, C=2250
+============================================================
+
+Probe training set: 2596 hidden states (PII=2506, General=90), dim=4096
+  CV Accuracy : 0.997 ± 0.003
+  CV F1       : 0.998 ± 0.002
+  CV ROC-AUC  : 0.999 ± 0.001
+
+============================================================
+Pipeline Results  (method=M1)
+============================================================
+  True Positive  (A detected as PII)       : 1734/2250
+  False Negative (A missed)                : 516/2250
+  False Positive (B/C detected as PII)     : 1216/2367
+    ├ B (general knowledge) FP             : 0/117
+    └ C (no context)        FP             : 1216/2250
+  True Negative  (B/C correctly silent)    : 1151/2367
+
+  Precision : 0.5878  (of all alerts, how many were real leaks)
+  Recall    : 0.7707  (of all real leaks, how many were caught)
+  F1 Score  : 0.6669
+
+============================================================
+Running M2 (sustained window) ...
+
+============================================================
+End-to-end Pipeline Evaluation
+  Results dir : results_llama8b_20260401_1429
+  Method      : M2
+  Samples     : A=2250, B=117, C=2250
+============================================================
+
+Probe training set: 1720 hidden states (PII=1670, General=50), dim=4096
+  CV Accuracy : 0.997 ± 0.003
+  CV F1       : 0.998 ± 0.002
+  CV ROC-AUC  : 1.000 ± 0.000
+
+============================================================
+Pipeline Results  (method=M2)
+============================================================
+  True Positive  (A detected as PII)       : 1324/2250
+  False Negative (A missed)                : 926/2250
+  False Positive (B/C detected as PII)     : 795/2367
+    ├ B (general knowledge) FP             : 0/117
+    └ C (no context)        FP             : 795/2250
+  True Negative  (B/C correctly silent)    : 1572/2367
+
+  Precision : 0.6248  (of all alerts, how many were real leaks)
+  Recall    : 0.5884  (of all real leaks, how many were caught)
+  F1 Score  : 0.6061
+
+============================================================
+Comparison: M1 vs M2
+============================================================
+Metric          M1 (ΔH-drop)  M2 (sustained)
+------------------------------------------
+precision             0.5878          0.6248
+recall                0.7707          0.5884
+f1                    0.6669          0.6061
+TP                      1734            1324
+FP                      1216             795
+FN                       516             926
