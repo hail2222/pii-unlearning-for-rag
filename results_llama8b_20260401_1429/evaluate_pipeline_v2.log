@@ -1,0 +1,80 @@
+
+============================================================
+Running M1 (ΔH-drop) ...
+
+============================================================
+End-to-end Pipeline Evaluation
+  Results dir    : results_llama8b_20260401_1429
+  Method         : M1
+  A total        : 2250
+    ├ PII located    : 1664  ← positive (ground truth = leak)
+    └ PII not located: 586  ← negative (no leak occurred)
+  B (general)    : 117  ← negative
+  C (no context) : 2250  ← negative
+============================================================
+
+Probe training set: 2596 hidden states (PII=2506, General=90), dim=4096
+  CV Accuracy : 0.997 ± 0.003
+  CV F1       : 0.998 ± 0.002
+  CV ROC-AUC  : 0.999 ± 0.001
+
+============================================================
+Pipeline Results  (method=M1)
+============================================================
+  True Positive  (A-located detected)       : 1351/1664
+  False Negative (A-located missed)         : 313/1664
+  False Positive (negative detected as PII) : 1599/2953
+    ├ A-not-located FP                      : 383/586
+    ├ B (general knowledge) FP              : 0/117
+    └ C (no context)        FP              : 1216/2250
+  True Negative  (negative correctly silent): 1354/2953
+
+  Precision : 0.4580  (of all alerts, how many were real leaks)
+  Recall    : 0.8119  (of all real leaks, how many were caught)
+  F1 Score  : 0.5856
+
+============================================================
+Running M2 (sustained window) ...
+
+============================================================
+End-to-end Pipeline Evaluation
+  Results dir    : results_llama8b_20260401_1429
+  Method         : M2
+  A total        : 2250
+    ├ PII located    : 1664  ← positive (ground truth = leak)
+    └ PII not located: 586  ← negative (no leak occurred)
+  B (general)    : 117  ← negative
+  C (no context) : 2250  ← negative
+============================================================
+
+Probe training set: 1720 hidden states (PII=1670, General=50), dim=4096
+  CV Accuracy : 0.997 ± 0.003
+  CV F1       : 0.998 ± 0.002
+  CV ROC-AUC  : 1.000 ± 0.000
+
+============================================================
+Pipeline Results  (method=M2)
+============================================================
+  True Positive  (A-located detected)       : 1009/1664
+  False Negative (A-located missed)         : 655/1664
+  False Positive (negative detected as PII) : 1110/2953
+    ├ A-not-located FP                      : 315/586
+    ├ B (general knowledge) FP              : 0/117
+    └ C (no context)        FP              : 795/2250
+  True Negative  (negative correctly silent): 1843/2953
+
+  Precision : 0.4762  (of all alerts, how many were real leaks)
+  Recall    : 0.6064  (of all real leaks, how many were caught)
+  F1 Score  : 0.5334
+
+============================================================
+Comparison: M1 vs M2
+============================================================
+Metric          M1 (ΔH-drop)  M2 (sustained)
+------------------------------------------
+precision             0.4580          0.4762
+recall                0.8119          0.6064
+f1                    0.5856          0.5334
+TP                      1351            1009
+FP                      1599            1110
+FN                       313             655
