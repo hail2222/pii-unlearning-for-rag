@@ -31,7 +31,7 @@ class ModelProbe:
         print(f"Loading model: {model_name}")
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
-            torch_dtype=torch.float32 if device == "cpu" else torch.bfloat16,
+            torch_dtype=torch.float32 if device == "cpu" else torch.float16,
         ).to(device)
         self.model.eval()
 
