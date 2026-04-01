@@ -36,6 +36,9 @@ if [[ "$MODEL" == *"Qwen2.5-7B"* ]]; then
     RESULTS_DIR="results_qwen7b"
 fi
 
+mkdir -p "$RESULTS_DIR"
+LOG_FILE="$RESULTS_DIR/run_$(date +%Y%m%d_%H%M%S).log"
+
 echo "=============================================="
 echo "Model      : $MODEL"
 echo "Device     : $DEVICE"
@@ -43,24 +46,34 @@ echo "Max samples: $MAX_SAMPLES"
 echo "Probe layer: $PROBE_LAYER"
 echo "Results dir: $RESULTS_DIR"
 echo "Resume     : ${RESUME:-no}"
+echo "Log file   : $LOG_FILE"
 echo "=============================================="
 
-python run_experiment.py \
-    --model       "$MODEL"       \
-    --device      "$DEVICE"      \
-    --max-samples "$MAX_SAMPLES" \
-    --probe-layer "$PROBE_LAYER" \
-    --results-dir "$RESULTS_DIR" \
-    $RESUME
+{
+    echo "Run started: $(date)"
+    echo "Model: $MODEL  Device: $DEVICE  Max-samples: $MAX_SAMPLES  Probe-layer: $PROBE_LAYER"
+    echo ""
 
-echo ""
-echo "Experiment done. Running analysis..."
-python analysis.py --results-dir "$RESULTS_DIR"
+    python run_experiment.py \
+        --model       "$MODEL"       \
+        --device      "$DEVICE"      \
+        --max-samples "$MAX_SAMPLES" \
+        --probe-layer "$PROBE_LAYER" \
+        --results-dir "$RESULTS_DIR" \
+        $RESUME
 
-echo ""
-echo "Running linear probe..."
-python linear_probe.py --results-dir "$RESULTS_DIR"
+    echo ""
+    echo "Experiment done. Running analysis..."
+    python analysis.py --results-dir "$RESULTS_DIR"
 
-echo ""
-echo "Running end-to-end pipeline evaluation..."
-python evaluate_pipeline.py --results-dir "$RESULTS_DIR"
+    echo ""
+    echo "Running linear probe..."
+    python linear_probe.py --results-dir "$RESULTS_DIR"
+
+    echo ""
+    echo "Running end-to-end pipeline evaluation..."
+    python evaluate_pipeline.py --results-dir "$RESULTS_DIR"
+
+    echo ""
+    echo "Run finished: $(date)"
+} 2>&1 | tee "$LOG_FILE"
