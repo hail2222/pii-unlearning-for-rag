@@ -55,6 +55,8 @@ def parse_args():
                         help="Directory to save results")
     parser.add_argument("--resume",      action="store_true",
                         help="Skip already-completed conditions (resume interrupted run)")
+    parser.add_argument("--save-all-hidden", action="store_true",
+                        help="Save hidden states for ALL tokens (needed for probe-only comparison)")
     return parser.parse_args()
 
 
@@ -91,9 +93,12 @@ class SampleResult:
     red_flag_hidden_states: list = field(default_factory=list)
     # Hidden states at sustained flag moments (Method 2)
     sustained_hidden_states: list = field(default_factory=list)
+    # All hidden states (one per generated token) — only saved with --save-all-hidden
+    all_hidden_states: list = field(default_factory=list)
 
 
-def run_single(probe: ModelProbe, sample: Sample, threshold: float, zscore: float) -> SampleResult:
+def run_single(probe: ModelProbe, sample: Sample, threshold: float, zscore: float,
+               save_all_hidden: bool = False) -> SampleResult:
     # Generate
     out = probe.generate_with_probes(sample.prompt, max_new_tokens=MAX_NEW_TOKENS)
 
@@ -121,7 +126,7 @@ def run_single(probe: ModelProbe, sample: Sample, threshold: float, zscore: floa
     lead_times     = compute_lead_time(red_flags, pii_positions)
     sus_lead_times = compute_lead_time(sus_flags, pii_positions)
 
-    # Hidden states
+    # Hidden states at flag moments
     rf_hidden = [
         out["hidden_states"][i].numpy()
         for i in red_flags if i < len(out["hidden_states"])
@@ -130,6 +135,12 @@ def run_single(probe: ModelProbe, sample: Sample, threshold: float, zscore: floa
         out["hidden_states"][i].numpy()
         for i in sus_flags if i < len(out["hidden_states"])
     ]
+
+    # All hidden states (optional, for probe-only comparison)
+    all_hidden = (
+        [hs.numpy() for hs in out["hidden_states"]]
+        if save_all_hidden else []
+    )
 
     return SampleResult(
         condition=sample.condition,
@@ -149,6 +160,7 @@ def run_single(probe: ModelProbe, sample: Sample, threshold: float, zscore: floa
         pii_token_positions=pii_positions,
         red_flag_hidden_states=rf_hidden,
         sustained_hidden_states=sus_hidden,
+        all_hidden_states=all_hidden,
     )
 
 
@@ -223,7 +235,8 @@ def run_all(args):
             try:
                 r = run_single(probe, sample,
                                threshold=ENTROPY_DROP_THRESHOLD,
-                               zscore=ENTROPY_DROP_ZSCORE)
+                               zscore=ENTROPY_DROP_ZSCORE,
+                               save_all_hidden=args.save_all_hidden)
                 results.append(r)
                 # Checkpoint every sample
                 _save_checkpoint(results, condition, args.results_dir)
