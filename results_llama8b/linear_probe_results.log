@@ -1,0 +1,18 @@
+Dataset: 307 samples (PII=217, General=90), dim=4096
+
+==================================================
+Linear Probe (5-fold CV)
+  Accuracy : 0.993 ± 0.013
+  F1       : 0.995 ± 0.009
+  ROC-AUC  : 1.000 ± 0.000
+
+Full-data classification report:
+              precision    recall  f1-score   support
+
+     General       1.00      1.00      1.00        90
+         PII       1.00      1.00      1.00       217
+
+    accuracy                           1.00       307
+   macro avg       1.00      1.00      1.00       307
+weighted avg       1.00      1.00      1.00       307
+

@@ -1,0 +1,54 @@
+
+============================================================
+EXPERIMENT SUMMARY
+============================================================
+
+A: PII (RAG context) (200 samples)
+  Samples with ≥1 red flag : 157/200 (78%)
+  Avg red flags per sample  : 1.1
+  Samples with PII matched  : 146/200
+  Lead-time (tokens)        : mean=8.4, median=8.0, min=0, max=33
+
+B: General Knowledge (117 samples)
+  Samples with ≥1 red flag : 70/117 (60%)
+  Avg red flags per sample  : 0.8
+  Samples with PII matched  : 0/117
+
+C: PII (No context) (200 samples)
+  Samples with ≥1 red flag : 119/200 (60%)
+  Avg red flags per sample  : 0.7
+  Samples with PII matched  : 0/200
+Saved: results_llama8b/plots/token_entropy_A_pii.png
+Saved: results_llama8b/plots/token_entropy_B_general.png
+Saved: results_llama8b/plots/token_entropy_C_no_context.png
+Saved: results_llama8b/plots/entropy_distributions.png
+Saved: results_llama8b/plots/lead_time.png
+Saved: results_llama8b/plots/persistence_analysis.png
+
+── Absolute-level & Persistence Stats (threshold=0.5) ──
+
+A: PII (RAG context)
+  Mean entropy          : 0.2901
+  Max entropy           : 1.3437  (max across samples: 2.56)
+  Low-entropy ratio     : 0.7699  (tokens < 0.5 nats)
+  Abs run length        : mean=5.96, max=36
+  Abs recovery time     : mean=7.31, median=7.0
+
+B: General Knowledge
+  Mean entropy          : 0.3070
+  Max entropy           : 1.1536  (max across samples: 3.78)
+  Low-entropy ratio     : 0.7337  (tokens < 0.5 nats)
+  Abs run length        : mean=4.57, max=66
+  Abs recovery time     : mean=6.63, median=7.0
+
+C: PII (No context)
+  Mean entropy          : 0.5275
+  Max entropy           : 1.8921  (max across samples: 3.07)
+  Low-entropy ratio     : 0.6127  (tokens < 0.5 nats)
+  Abs run length        : mean=3.01, max=15
+  Abs recovery time     : mean=2.75, median=2.0
+Saved: results_llama8b/A_pii_table.csv
+Saved: results_llama8b/B_general_table.csv
+Saved: results_llama8b/C_no_context_table.csv
+
+All outputs saved to: results_llama8b

@@ -1,0 +1,16 @@
+/home/skku/hojoon/pii-unlearning-for-rag/analyze_entropy_curve.py:102: MatplotlibDeprecationWarning: The 'labels' parameter of boxplot() has been renamed 'tick_labels' since Matplotlib 3.9; support for the old name will be dropped in 3.11.
+  bp = ax.boxplot([loc_means, nloc_means],
+
+==================================================
+Entropy Summary (Condition A only)
+==================================================
+
+  PII generated    (context → PII in output) (n=1664)
+    Mean entropy : 0.1836 ± 0.1127
+    Median       : 0.1550
+
+  PII not generated (context → no PII in output) (n=586)
+    Mean entropy : 0.6082 ± 0.2744
+    Median       : 0.5288
+Saved → results_llama8b_20260401_1429/entropy_curve_located_vs_not.png
+Saved → results_llama8b_20260401_1429/entropy_boxplot_located_vs_not.png
