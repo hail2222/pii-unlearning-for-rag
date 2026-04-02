@@ -1,24 +1,18 @@
 """
 End-to-end evaluation of the two-stage privacy detection pipeline.
 
-Stage 1: Entropy sensor (M1: ΔH-drop or M2: sustained low-entropy window)
-          fires a Red Flag when it detects suspicious generation.
-Stage 2: Linear Probe classifies the hidden state at Red Flag moment
-          as PII (1) or General (0).
+Ground truth is defined by whether PII tokens actually appeared in the output,
+NOT by the experimental condition label:
 
-A sample is counted as DETECTED if:
-    - Stage 1 fires at least one Red Flag, AND
-    - Stage 2 classifies that hidden state as PII
+    Positive: A samples where PII was actually generated (pii_token_positions > 0)
+    Negative: A_not_located + B + C  (no PII in output, regardless of condition)
 
-Metrics (per condition):
-    Condition A → ground truth = PII leak (positive)
-    Condition B → ground truth = general knowledge (negative)
-    Condition C → ground truth = no PII available (negative)
+Stage 2 Linear Probe is trained on:
+    Positive hidden states: A_located Red Flag moments
+    Negative hidden states: A_not_located + B Red Flag moments
 
-    True Positive  (TP): A sample detected as PII  → correct
-    False Negative (FN): A sample NOT detected      → missed leak
-    False Positive (FP): B or C sample detected as PII → false alarm
-    True Negative  (TN): B or C sample NOT detected → correct silence
+This ensures the probe learns "is the model generating PII right now?"
+rather than "which experimental condition is this?"
 
 Usage:
     python evaluate_pipeline.py                          # local (results/)
@@ -65,27 +59,29 @@ def load_condition(results_dir: str, condition: str) -> list[SampleResult]:
         return pickle.load(f)
 
 
-# ── Stage 2: train Linear Probe on A vs B ─────────────────────────────────────
+# ── Stage 2: train Linear Probe ───────────────────────────────────────────────
 
-def train_probe(a_results: list, b_results: list, method: str) -> Pipeline:
+def train_probe(pos_results: list, neg_results: list, method: str) -> Pipeline:
     """
     Train Linear Probe on red-flag hidden states.
+      pos_results: samples where PII was actually generated  (label=1)
+      neg_results: samples where no PII was generated        (label=0)
     method="m1" uses red_flag_hidden_states (ΔH-drop).
     method="m2" uses sustained_hidden_states.
     """
     X_list, y_list = [], []
 
-    for r in a_results:
+    for r in pos_results:
         hs_list = r.red_flag_hidden_states if method == "m1" else r.sustained_hidden_states
         for hs in hs_list:
             X_list.append(hs)
-            y_list.append(1)   # PII
+            y_list.append(1)   # PII generated
 
-    for r in b_results:
+    for r in neg_results:
         hs_list = r.red_flag_hidden_states if method == "m1" else r.sustained_hidden_states
         for hs in hs_list:
             X_list.append(hs)
-            y_list.append(0)   # General
+            y_list.append(0)   # PII not generated
 
     if not X_list:
         raise ValueError("No hidden states found. Check threshold or results.")
@@ -93,7 +89,7 @@ def train_probe(a_results: list, b_results: list, method: str) -> Pipeline:
     X = np.stack(X_list).astype(np.float32)
     y = np.array(y_list)
     print(f"\nProbe training set: {len(y)} hidden states "
-          f"(PII={y.sum()}, General={len(y)-y.sum()}), dim={X.shape[1]}")
+          f"(PII-generated={y.sum()}, Not-generated={len(y)-y.sum()}), dim={X.shape[1]}")
 
     # Cross-validation report
     pipe = Pipeline([
@@ -144,15 +140,19 @@ def evaluate(results_dir: str, method: str, probe_cv: int):
     print(f"End-to-end Pipeline Evaluation")
     print(f"  Results dir    : {results_dir}")
     print(f"  Method         : {method.upper()}")
-    print(f"  A total        : {len(a_results)}")
-    print(f"    ├ PII located    : {len(a_located)}  ← positive (ground truth = leak)")
-    print(f"    └ PII not located: {len(a_not_located)}  ← negative (no leak occurred)")
-    print(f"  B (general)    : {len(b_results)}  ← negative")
-    print(f"  C (no context) : {len(c_results)}  ← negative")
+    print(f"  Positive (PII actually generated)  : {len(a_located)}  [A-located]")
+    print(f"  Negative (no PII in output)        : {len(a_not_located) + len(b_results) + len(c_results)}")
+    print(f"    ├ A-not-located : {len(a_not_located)}")
+    print(f"    ├ B (general)   : {len(b_results)}")
+    print(f"    └ C (no context): {len(c_results)}")
     print(f"{'='*60}")
 
-    # Train probe on A (all) vs B — same as before, probe learns PII hidden state shape
-    probe = train_probe(a_results, b_results, method)
+    # Train probe: A_located (positive) vs A_not_located + B (negative)
+    # C excluded from training — used only for evaluation
+    neg_train = a_not_located + b_results
+    print(f"\nProbe training — Positive: A-located (n={len(a_located)}), "
+          f"Negative: A-not-located + B (n={len(neg_train)})")
+    probe = train_probe(a_located, neg_train, method)
 
     # Run pipeline
     a_loc_detected     = [run_pipeline_on_sample(r, probe, method) for r in a_located]
