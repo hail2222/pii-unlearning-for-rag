@@ -1,0 +1,48 @@
+
+============================================================
+Three-Way Method Comparison  (entropy: M1)
+  Results dir : results_compare_v2
+  Split: 80% train / 20% test, seed=42
+  Train — A-located: 117, neg (A-not+B): 138
+  Test  — A-located: 29,  neg (A-not+B+C): 233
+============================================================
+
+  [Entropy only (M1)]
+    TP=26  FN=3  FP=137  TN=96
+    Precision : 0.1595
+    Recall    : 0.8966
+    F1        : 0.2708
+
+  Probe-only train: PII-pos=180, neg=540, dim=4096
+    CV Accuracy : 0.979 ± 0.008
+    CV F1       : 0.959 ± 0.015
+    CV ROC-AUC  : 0.995 ± 0.003
+
+  [Probe only]
+    TP=29  FN=0  FP=1  TN=232
+    Precision : 0.9667
+    Recall    : 1.0000
+    F1        : 0.9831
+
+  Pipeline train: PII=129, Not-PII=114, dim=4096
+    CV Accuracy : 0.946 ± 0.017
+    CV F1       : 0.949 ± 0.018
+    CV ROC-AUC  : 0.980 ± 0.016
+
+  [Entropy + Probe (M1)]
+    TP=26  FN=3  FP=10  TN=223
+    Precision : 0.7222
+    Recall    : 0.8966
+    F1        : 0.8000
+
+============================================================
+Summary  (entropy: M1)
+============================================================
+Metric         Entropy only   Probe only   Pipeline
+--------------------------------------------------
+precision            0.1595       0.9667     0.7222
+recall               0.8966       1.0000     0.8966
+f1                   0.2708       0.9831     0.8000
+TP                       26           29         26
+FP                      137            1         10
+FN                        3            0          3
