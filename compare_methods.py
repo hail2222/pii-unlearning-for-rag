@@ -78,12 +78,14 @@ def compute_metrics(label, tp, fn, fp, tn):
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall    = tp / (tp + fn) if (tp + fn) > 0 else 0.0
     f1        = 2*precision*recall / (precision+recall) if (precision+recall) > 0 else 0.0
+    accuracy  = (tp + tn) / (tp + fn + fp + tn) if (tp + fn + fp + tn) > 0 else 0.0
     print(f"\n  [{label}]")
     print(f"    TP={tp}  FN={fn}  FP={fp}  TN={tn}")
+    print(f"    Accuracy  : {accuracy:.4f}")
     print(f"    Precision : {precision:.4f}")
     print(f"    Recall    : {recall:.4f}")
     print(f"    F1        : {f1:.4f}")
-    return {"precision": precision, "recall": recall, "f1": f1,
+    return {"accuracy": accuracy, "precision": precision, "recall": recall, "f1": f1,
             "TP": tp, "FN": fn, "FP": fp, "TN": tn}
 
 
@@ -220,15 +222,18 @@ def main():
 
     print(f"\n{'='*60}")
     print(f"Summary  (entropy: {args.method.upper()})")
+    print(f"  Task: PII-generated text vs. everything else")
+    print(f"  Test — Positive: {len(loc_test)}, Negative: {len(neg_test)}")
     print(f"{'='*60}")
     print(f"{'Metric':<12} {'Entropy only':>14} {'Probe only':>12} {'Pipeline':>10}")
     print(f"{'-'*50}")
-    for k in ["precision", "recall", "f1"]:
+    for k in ["accuracy", "precision", "recall", "f1"]:
         v1 = f"{r1[k]:.4f}" if r1 else "N/A"
         v2 = f"{r2[k]:.4f}" if r2 else "N/A"
         v3 = f"{r3[k]:.4f}" if r3 else "N/A"
         print(f"{k:<12} {v1:>14} {v2:>12} {v3:>10}")
-    for k in ["TP", "FP", "FN"]:
+    print(f"{'-'*50}")
+    for k in ["TP", "FP", "FN", "TN"]:
         v1 = str(r1[k]) if r1 else "N/A"
         v2 = str(r2[k]) if r2 else "N/A"
         v3 = str(r3[k]) if r3 else "N/A"
