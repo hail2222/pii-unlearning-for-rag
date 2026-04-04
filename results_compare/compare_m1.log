@@ -1,0 +1,53 @@
+
+============================================================
+Three-Way Method Comparison
+  Results dir : results_compare
+  Entropy method: M1
+  Positive (PII generated)  : 146
+  Negative (no PII in output): 371
+    ├ A-not-located: 54
+    ├ B (general)  : 117
+    └ C (no context): 200
+============================================================
+
+  [Entropy only (M1)]
+    TP=120  FN=26  FP=226  TN=145
+    Precision : 0.3468
+    Recall    : 0.8219
+    F1        : 0.4878
+
+  Probe-only training: PII-pos=229, neg=687, dim=4096
+  Probe-only CV
+    CV Accuracy : 0.967 ± 0.009
+    CV F1       : 0.936 ± 0.017
+    CV ROC-AUC  : 0.990 ± 0.003
+
+  [Probe only]
+    TP=146  FN=0  FP=14  TN=357
+    Precision : 0.9125
+    Recall    : 1.0000
+    F1        : 0.9542
+
+  Pipeline training: PII=166, Not-PII=141, dim=4096
+  Pipeline CV (M1)
+    CV Accuracy : 0.951 ± 0.023
+    CV F1       : 0.954 ± 0.022
+    CV ROC-AUC  : 0.993 ± 0.006
+
+  [Entropy + Probe (M1)]
+    TP=120  FN=26  FP=12  TN=359
+    Precision : 0.9091
+    Recall    : 0.8219
+    F1        : 0.8633
+
+============================================================
+Summary Comparison  (entropy method: M1)
+============================================================
+Metric         Entropy only   Probe only   Pipeline
+--------------------------------------------------
+precision            0.3468       0.9125     0.9091
+recall               0.8219       1.0000     0.8219
+f1                   0.4878       0.9542     0.8633
+TP                      120          146        120
+FP                      226           14         12
+FN                       26            0         26
