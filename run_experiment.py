@@ -256,6 +256,7 @@ def run_all(args):
             d = asdict(r)
             d.pop("red_flag_hidden_states")
             d.pop("sustained_hidden_states")
+            d.pop("all_hidden_states")
             summary.append(d)
         json_path = os.path.join(args.results_dir, f"{condition}_summary.json")
         with open(json_path, "w") as f:
