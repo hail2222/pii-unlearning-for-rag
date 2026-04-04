@@ -1,22 +1,18 @@
 """
 End-to-end evaluation of the two-stage privacy detection pipeline.
 
-Ground truth is defined by whether PII tokens actually appeared in the output,
-NOT by the experimental condition label:
+Ground truth: PII tokens actually appeared in output (pii_token_positions > 0)
+    Positive: A_located
+    Negative: A_not_located + B + C
 
-    Positive: A samples where PII was actually generated (pii_token_positions > 0)
-    Negative: A_not_located + B + C  (no PII in output, regardless of condition)
+Train/test split (80/20, seed=42) is applied at the SAMPLE level before
+extracting hidden states, preventing data leakage.
 
-Stage 2 Linear Probe is trained on:
-    Positive hidden states: A_located Red Flag moments
-    Negative hidden states: A_not_located + B Red Flag moments
-
-This ensures the probe learns "is the model generating PII right now?"
-rather than "which experimental condition is this?"
+    Probe trains on: train split of (A_located + A_not_located + B)
+    Probe evaluates on: test split of (A_located + A_not_located + B) + all of C
 
 Usage:
-    python evaluate_pipeline.py                          # local (results/)
-    python evaluate_pipeline.py --results-dir results_llama8b
+    python evaluate_pipeline.py --results-dir results_llama8b_20260401_1429
 """
 
 import os
@@ -29,69 +25,57 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.model_selection import StratifiedKFold, cross_validate as cv_fn
 
 from run_experiment import SampleResult
 from config import RESULTS_DIR as _DEFAULT_RESULTS_DIR
 
 
-# ── CLI ────────────────────────────────────────────────────────────────────────
-
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--results-dir", type=str, default=_DEFAULT_RESULTS_DIR)
-    p.add_argument("--method", type=str, default="m1",
-                   choices=["m1", "m2"],
-                   help="m1=ΔH-drop flags, m2=sustained flags")
-    p.add_argument("--probe-cv", type=int, default=5,
-                   help="Cross-validation folds for linear probe")
+    p.add_argument("--test-ratio",  type=float, default=0.2)
+    p.add_argument("--seed",        type=int,   default=42)
     return p.parse_args()
 
 
-# ── Load results ───────────────────────────────────────────────────────────────
-
-def load_condition(results_dir: str, condition: str) -> list[SampleResult]:
+def load_condition(results_dir, condition):
     path = os.path.join(results_dir, f"{condition}.pkl")
     if not os.path.exists(path):
-        raise FileNotFoundError(f"Not found: {path}  →  run run_experiment.py first")
+        raise FileNotFoundError(f"Not found: {path}")
     with open(path, "rb") as f:
         return pickle.load(f)
 
 
-# ── Stage 2: train Linear Probe ───────────────────────────────────────────────
+def split_samples(samples, test_ratio=0.2, seed=42):
+    """Sample-level train/test split. Returns (train, test)."""
+    rng = np.random.default_rng(seed)
+    idx = rng.permutation(len(samples))
+    n_test = max(1, int(len(samples) * test_ratio))
+    test_set  = set(idx[:n_test])
+    train = [s for i, s in enumerate(samples) if i not in test_set]
+    test  = [s for i, s in enumerate(samples) if i in test_set]
+    return train, test
 
-def train_probe(pos_results: list, neg_results: list, method: str) -> Pipeline:
-    """
-    Train Linear Probe on red-flag hidden states.
-      pos_results: samples where PII was actually generated  (label=1)
-      neg_results: samples where no PII was generated        (label=0)
-    method="m1" uses red_flag_hidden_states (ΔH-drop).
-    method="m2" uses sustained_hidden_states.
-    """
+
+def build_probe(pos_train, neg_train, method):
+    """Train Linear Probe on train split only."""
+    hs_key = "red_flag_hidden_states" if method == "m1" else "sustained_hidden_states"
     X_list, y_list = [], []
-
-    for r in pos_results:
-        hs_list = r.red_flag_hidden_states if method == "m1" else r.sustained_hidden_states
-        for hs in hs_list:
-            X_list.append(hs)
-            y_list.append(1)   # PII generated
-
-    for r in neg_results:
-        hs_list = r.red_flag_hidden_states if method == "m1" else r.sustained_hidden_states
-        for hs in hs_list:
-            X_list.append(hs)
-            y_list.append(0)   # PII not generated
+    for r in pos_train:
+        for hs in getattr(r, hs_key):
+            X_list.append(hs); y_list.append(1)
+    for r in neg_train:
+        for hs in getattr(r, hs_key):
+            X_list.append(hs); y_list.append(0)
 
     if not X_list:
-        raise ValueError("No hidden states found. Check threshold or results.")
+        raise ValueError("No hidden states in training split.")
 
     X = np.stack(X_list).astype(np.float32)
     y = np.array(y_list)
-    print(f"\nProbe training set: {len(y)} hidden states "
-          f"(PII-generated={y.sum()}, Not-generated={len(y)-y.sum()}), dim={X.shape[1]}")
+    print(f"  Train hidden states: PII={y.sum()}, Not-PII={len(y)-y.sum()}, dim={X.shape[1]}")
 
-    # Cross-validation report
     pipe = Pipeline([
         ("scaler", StandardScaler()),
         ("clf",    LogisticRegression(max_iter=1000, C=1.0)),
@@ -99,7 +83,6 @@ def train_probe(pos_results: list, neg_results: list, method: str) -> Pipeline:
     n_splits = min(5, int(y.sum()), int((y == 0).sum()))
     if n_splits >= 2:
         cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
-        from sklearn.model_selection import cross_validate as cv_fn
         scores = cv_fn(pipe, X, y, cv=cv, scoring=["accuracy", "f1", "roc_auc"])
         print(f"  CV Accuracy : {scores['test_accuracy'].mean():.3f} ± {scores['test_accuracy'].std():.3f}")
         print(f"  CV F1       : {scores['test_f1'].mean():.3f} ± {scores['test_f1'].std():.3f}")
@@ -109,104 +92,93 @@ def train_probe(pos_results: list, neg_results: list, method: str) -> Pipeline:
     return pipe
 
 
-# ── Stage 1+2: run pipeline on one sample ─────────────────────────────────────
-
-def run_pipeline_on_sample(r: SampleResult, probe: Pipeline, method: str) -> bool:
-    """
-    Returns True if the pipeline detects PII leak for this sample.
-    Detection = Stage1 fires AND Stage2 classifies at least one hs as PII.
-    """
-    hs_list = r.red_flag_hidden_states if method == "m1" else r.sustained_hidden_states
+def detect(r, probe, method):
+    hs_key = "red_flag_hidden_states" if method == "m1" else "sustained_hidden_states"
+    hs_list = getattr(r, hs_key)
     if not hs_list:
         return False
-
-    X = np.stack(hs_list).astype(np.float32)
-    preds = probe.predict(X)
-    return bool(preds.any())   # detected if ANY red-flag hs is classified as PII
+    return bool(probe.predict(np.stack(hs_list).astype(np.float32)).any())
 
 
-# ── Evaluation ─────────────────────────────────────────────────────────────────
+def print_results(label, tp, fn, fp, tn, n_pos, n_neg):
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall    = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f1        = 2*precision*recall / (precision+recall) if (precision+recall) > 0 else 0.0
+    print(f"\n{'='*60}")
+    print(f"Pipeline Results  [{label}]")
+    print(f"{'='*60}")
+    print(f"  TP (PII correctly detected) : {tp}/{n_pos}")
+    print(f"  FN (PII missed)             : {fn}/{n_pos}")
+    print(f"  FP (no-PII detected as PII) : {fp}/{n_neg}")
+    print(f"  TN (no-PII correctly silent): {tn}/{n_neg}")
+    print(f"\n  Precision : {precision:.4f}")
+    print(f"  Recall    : {recall:.4f}")
+    print(f"  F1 Score  : {f1:.4f}")
+    return {"precision": precision, "recall": recall, "f1": f1,
+            "TP": tp, "FN": fn, "FP": fp, "TN": tn}
 
-def evaluate(results_dir: str, method: str, probe_cv: int):
+
+def evaluate(results_dir, method, test_ratio, seed):
     a_results = load_condition(results_dir, "A_pii")
     b_results = load_condition(results_dir, "B_general")
     c_results = load_condition(results_dir, "C_no_context")
 
-    # Split A into PII-located (true positive candidates) and not-located (negative)
     a_located     = [r for r in a_results if len(r.pii_token_positions) > 0]
     a_not_located = [r for r in a_results if len(r.pii_token_positions) == 0]
 
-    print(f"\n{'='*60}")
-    print(f"End-to-end Pipeline Evaluation")
-    print(f"  Results dir    : {results_dir}")
-    print(f"  Method         : {method.upper()}")
-    print(f"  Positive (PII actually generated)  : {len(a_located)}  [A-located]")
-    print(f"  Negative (no PII in output)        : {len(a_not_located) + len(b_results) + len(c_results)}")
-    print(f"    ├ A-not-located : {len(a_not_located)}")
-    print(f"    ├ B (general)   : {len(b_results)}")
-    print(f"    └ C (no context): {len(c_results)}")
-    print(f"{'='*60}")
-
-    # Train probe: A_located (positive) vs A_not_located + B (negative)
-    # C excluded from training — used only for evaluation
-    neg_train = a_not_located + b_results
-    print(f"\nProbe training — Positive: A-located (n={len(a_located)}), "
-          f"Negative: A-not-located + B (n={len(neg_train)})")
-    probe = train_probe(a_located, neg_train, method)
-
-    # Run pipeline
-    a_loc_detected     = [run_pipeline_on_sample(r, probe, method) for r in a_located]
-    a_notloc_detected  = [run_pipeline_on_sample(r, probe, method) for r in a_not_located]
-    b_detected         = [run_pipeline_on_sample(r, probe, method) for r in b_results]
-    c_detected         = [run_pipeline_on_sample(r, probe, method) for r in c_results]
-
-    # Correct TP/FN/FP/TN
-    TP = sum(a_loc_detected)
-    FN = len(a_located) - TP
-    FP = sum(a_notloc_detected) + sum(b_detected) + sum(c_detected)
-    TN = (len(a_not_located) - sum(a_notloc_detected)) + \
-         (len(b_results) - sum(b_detected)) + \
-         (len(c_results) - sum(c_detected))
-
-    n_neg = len(a_not_located) + len(b_results) + len(c_results)
-
-    precision = TP / (TP + FP) if (TP + FP) > 0 else 0.0
-    recall    = TP / (TP + FN) if (TP + FN) > 0 else 0.0
-    f1        = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+    # Sample-level train/test split (no data leakage)
+    loc_train,     loc_test     = split_samples(a_located,     test_ratio, seed)
+    not_loc_train, not_loc_test = split_samples(a_not_located, test_ratio, seed)
+    b_train,       b_test       = split_samples(b_results,     test_ratio, seed)
+    # C is never used for training
+    c_test = c_results
 
     print(f"\n{'='*60}")
-    print(f"Pipeline Results  (method={method.upper()})")
+    print(f"Pipeline Evaluation  (method={method.upper()})")
+    print(f"  Results dir : {results_dir}")
+    print(f"  Split       : {int((1-test_ratio)*100)}% train / {int(test_ratio*100)}% test, seed={seed}")
+    print(f"  Train — A-located: {len(loc_train)}, A-not-located: {len(not_loc_train)}, B: {len(b_train)}")
+    print(f"  Test  — A-located: {len(loc_test)},  A-not-located: {len(not_loc_test)},  B: {len(b_test)}, C: {len(c_test)}")
     print(f"{'='*60}")
-    print(f"  True Positive  (A-located detected)       : {TP}/{len(a_located)}")
-    print(f"  False Negative (A-located missed)         : {FN}/{len(a_located)}")
-    print(f"  False Positive (negative detected as PII) : {FP}/{n_neg}")
-    print(f"    ├ A-not-located FP                      : {sum(a_notloc_detected)}/{len(a_not_located)}")
-    print(f"    ├ B (general knowledge) FP              : {sum(b_detected)}/{len(b_results)}")
-    print(f"    └ C (no context)        FP              : {sum(c_detected)}/{len(c_results)}")
-    print(f"  True Negative  (negative correctly silent): {TN}/{n_neg}")
-    print(f"\n  Precision : {precision:.4f}  (of all alerts, how many were real leaks)")
-    print(f"  Recall    : {recall:.4f}  (of all real leaks, how many were caught)")
-    print(f"  F1 Score  : {f1:.4f}")
 
-    return {"TP": TP, "FN": FN, "FP": FP, "TN": TN,
-            "precision": precision, "recall": recall, "f1": f1}
+    probe = build_probe(loc_train, not_loc_train + b_train, method)
 
+    # Evaluate on TEST split only
+    tp = sum(detect(r, probe, method) for r in loc_test)
+    fn = len(loc_test) - tp
 
-# ── Main ───────────────────────────────────────────────────────────────────────
+    fp_notloc = sum(detect(r, probe, method) for r in not_loc_test)
+    fp_b      = sum(detect(r, probe, method) for r in b_test)
+    fp_c      = sum(detect(r, probe, method) for r in c_test)
+    fp = fp_notloc + fp_b + fp_c
+
+    tn_notloc = len(not_loc_test) - fp_notloc
+    tn_b      = len(b_test)       - fp_b
+    tn_c      = len(c_test)       - fp_c
+    tn = tn_notloc + tn_b + tn_c
+
+    n_pos = len(loc_test)
+    n_neg = len(not_loc_test) + len(b_test) + len(c_test)
+
+    print(f"\n  FP breakdown:")
+    print(f"    ├ A-not-located : {fp_notloc}/{len(not_loc_test)}")
+    print(f"    ├ B (general)   : {fp_b}/{len(b_test)}")
+    print(f"    └ C (no context): {fp_c}/{len(c_test)}")
+
+    return print_results(method.upper(), tp, fn, fp, tn, n_pos, n_neg)
+
 
 if __name__ == "__main__":
     args = parse_args()
 
-    # Run both methods and compare
     print("\n" + "="*60)
     print("Running M1 (ΔH-drop) ...")
-    r_m1 = evaluate(args.results_dir, method="m1", probe_cv=args.probe_cv)
+    r_m1 = evaluate(args.results_dir, "m1", args.test_ratio, args.seed)
 
     print("\n" + "="*60)
     print("Running M2 (sustained window) ...")
-    r_m2 = evaluate(args.results_dir, method="m2", probe_cv=args.probe_cv)
+    r_m2 = evaluate(args.results_dir, "m2", args.test_ratio, args.seed)
 
-    # Side-by-side comparison
     print(f"\n{'='*60}")
     print("Comparison: M1 vs M2")
     print(f"{'='*60}")
@@ -214,6 +186,5 @@ if __name__ == "__main__":
     print(f"{'-'*42}")
     for k in ["precision", "recall", "f1"]:
         print(f"{k:<12} {r_m1[k]:>15.4f} {r_m2[k]:>15.4f}")
-    print(f"{'TP':<12} {r_m1['TP']:>15} {r_m2['TP']:>15}")
-    print(f"{'FP':<12} {r_m1['FP']:>15} {r_m2['FP']:>15}")
-    print(f"{'FN':<12} {r_m1['FN']:>15} {r_m2['FN']:>15}")
+    for k in ["TP", "FP", "FN"]:
+        print(f"{k:<12} {r_m1[k]:>15} {r_m2[k]:>15}")
