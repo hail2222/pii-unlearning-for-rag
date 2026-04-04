@@ -1,68 +1,149 @@
 
-============================================================
-Entropy Sequence Classification
+==============================================================
+  Entropy Sequence Classification — Method Comparison
+==============================================================
   Results dir : results_llama8b_20260401_1429
-  Split: 80% train / 20% test, seed=42
-  Train — pos: 1332, neg: 563
-  Test  — pos: 332,  neg: 2390
-============================================================
+  Split       : 80% train / 20% test, seed=42
+  Train       : pos=1332, neg=563
+  Test        : pos=332,  neg=2390
+  Device      : cuda, epochs=30, batch=32
 
-============================================================
-Step 1: Feature-based Logistic Regression
-============================================================
+==============================================================
+  1. Logistic Regression
+==============================================================
+  Config     : C=1.0, max_iter=1000, features=12
+  Train CV   : Accuracy=0.923±0.002  F1=0.947±0.001  AUC=0.915±0.016
+  Positive ✓ (TP): 327/332 (98.5%)
+  Positive ✗ (FN): 5/332 (1.5%)
+  Negative ✓ (TN): 2186/2390 (91.5%)
+  Negative ✗ (FP): 204/2390 (8.5%)
+  Accuracy : 0.9232  Precision: 0.6158  Recall: 0.9849  F1: 0.7578
 
-  Train CV (n=1895, features=12):
-    CV Accuracy : 0.923 ± 0.002
-    CV F1       : 0.947 ± 0.001
-    CV ROC-AUC  : 0.915 ± 0.016
+==============================================================
+  2. Random Forest
+==============================================================
+  Config     : n_estimators=200, max_depth=None, min_samples_leaf=1
+  Train CV   : Accuracy=0.934±0.010  F1=0.954±0.007  AUC=0.976±0.006
+  Positive ✓ (TP): 328/332 (98.8%)
+  Positive ✗ (FN): 4/332 (1.2%)
+  Negative ✓ (TN): 2289/2390 (95.8%)
+  Negative ✗ (FP): 101/2390 (4.2%)
+  Accuracy : 0.9614  Precision: 0.7646  Recall: 0.9880  F1: 0.8620
 
-  Test set (n=2722):
+  [3. XGBoost] SKIPPED — pip install xgboost
 
-  [LR on entropy features]
-    Positive 맞춤 (TP) : 327/332 (98.5%)
-    Positive 틀림 (FN) : 5/332 (1.5%)
-    Negative 맞춤 (TN) : 2186/2390 (91.5%)
-    Negative 틀림 (FP) : 204/2390 (8.5%)
-    Accuracy  : 0.9232
-    Precision : 0.6158
-    Recall    : 0.9849
-    F1        : 0.7578
+==============================================================
+  4. LSTM
+==============================================================
+  Config     : hidden=64, layers=2, dropout=0.3, lr=0.001, epochs=30
+  Parameters : 52,545
+    Epoch  10/30  loss=0.4111
+    Epoch  20/30  loss=0.4118
+    Epoch  30/30  loss=0.4118
+  Positive ✓ (TP): 332/332 (100.0%)
+  Positive ✗ (FN): 0/332 (0.0%)
+  Negative ✓ (TN): 0/2390 (0.0%)
+  Negative ✗ (FP): 2390/2390 (100.0%)
+  Accuracy : 0.1220  Precision: 0.1220  Recall: 1.0000  F1: 0.2174
 
-============================================================
-Step 2: 1D CNN on raw entropy sequence
-============================================================
-  Device: cuda, seq_len=80, epochs=30
+==============================================================
+  5. GRU
+==============================================================
+  Config     : hidden=64, layers=2, dropout=0.3, lr=0.001, epochs=30
+  Parameters : 39,937
+    Epoch  10/30  loss=0.4134
+    Epoch  20/30  loss=0.4118
+    Epoch  30/30  loss=0.4103
+  Positive ✓ (TP): 5/332 (1.5%)
+  Positive ✗ (FN): 327/332 (98.5%)
+  Negative ✓ (TN): 2380/2390 (99.6%)
+  Negative ✗ (FP): 10/2390 (0.4%)
+  Accuracy : 0.8762  Precision: 0.3333  Recall: 0.0151  F1: 0.0288
 
-  Train: 1895 samples (pos=1332, neg=563)
-    Epoch  10/30  loss=0.1839
-    Epoch  20/30  loss=0.1286
-    Epoch  30/30  loss=0.1168
+==============================================================
+  6. 1D CNN (baseline)
+==============================================================
+  Config     : channels=1→32→64→128, kernels=5,3,3, pool=max+adaptive, dropout=0.3
+  Parameters : 39,425
+    Epoch  10/30  loss=0.1718
+    Epoch  20/30  loss=0.1245
+    Epoch  30/30  loss=0.1182
+  Positive ✓ (TP): 321/332 (96.7%)
+  Positive ✗ (FN): 11/332 (3.3%)
+  Negative ✓ (TN): 2361/2390 (98.8%)
+  Negative ✗ (FP): 29/2390 (1.2%)
+  Accuracy : 0.9853  Precision: 0.9171  Recall: 0.9669  F1: 0.9413
 
-  Test set (n=2722):
+==============================================================
+  7. Multi-scale CNN (kernels 3,5,7)
+==============================================================
+  Config     : channels=1, kernels=3,5,7 (parallel), out_per_branch=64, dropout=0.3
+  Parameters : 13,569
+    Epoch  10/30  loss=0.2504
+    Epoch  20/30  loss=0.2312
+    Epoch  30/30  loss=0.2251
+  Positive ✓ (TP): 292/332 (88.0%)
+  Positive ✗ (FN): 40/332 (12.0%)
+  Negative ✓ (TN): 2323/2390 (97.2%)
+  Negative ✗ (FP): 67/2390 (2.8%)
+  Accuracy : 0.9607  Precision: 0.8134  Recall: 0.8795  F1: 0.8452
 
-  [1D CNN on entropy sequence]
-    Positive 맞춤 (TP) : 322/332 (97.0%)
-    Positive 틀림 (FN) : 10/332 (3.0%)
-    Negative 맞춤 (TN) : 2363/2390 (98.9%)
-    Negative 틀림 (FP) : 27/2390 (1.1%)
-    Accuracy  : 0.9864
-    Precision : 0.9226
-    Recall    : 0.9699
-    F1        : 0.9457
+==============================================================
+  8. 2-channel CNN (entropy + Δentropy)
+==============================================================
+  Config     : channels=2 (entropy+delta), kernels=5,3,3, pool=max+adaptive, dropout=0.3
+  Parameters : 39,585
+    Epoch  10/30  loss=0.1480
+    Epoch  20/30  loss=0.1077
+    Epoch  30/30  loss=0.0985
+  Positive ✓ (TP): 321/332 (96.7%)
+  Positive ✗ (FN): 11/332 (3.3%)
+  Negative ✓ (TN): 2364/2390 (98.9%)
+  Negative ✗ (FP): 26/2390 (1.1%)
+  Accuracy : 0.9864  Precision: 0.9251  Recall: 0.9669  F1: 0.9455
 
-============================================================
-Summary: Entropy only  →  LR features  →  1D CNN
-  Task: PII-generated text vs. everything else
-  Test — Positive: 332, Negative: 2390
-============================================================
-Metric         LR (features)     1D CNN
---------------------------------------
-accuracy              0.9232     0.9864
-precision             0.6158     0.9226
-recall                0.9849     0.9699
-f1                    0.7578     0.9457
---------------------------------------
-TP                       327        322
-FP                       204         27
-FN                         5         10
-TN                      2186       2363
+==============================================================
+  9. CNN + LSTM
+==============================================================
+  Config     : cnn=Conv1d(1→32,k=5)+MaxPool, lstm=hidden=64,layers=1, dropout=0.3
+  Parameters : 27,393
+    Epoch  10/30  loss=0.4136
+    Epoch  20/30  loss=0.4130
+    Epoch  30/30  loss=0.4117
+  Positive ✓ (TP): 329/332 (99.1%)
+  Positive ✗ (FN): 3/332 (0.9%)
+  Negative ✓ (TN): 3/2390 (0.1%)
+  Negative ✗ (FP): 2387/2390 (99.9%)
+  Accuracy : 0.1220  Precision: 0.1211  Recall: 0.9910  F1: 0.2159
+
+==============================================================
+  10. Transformer Encoder
+==============================================================
+  Config     : d_model=32, nhead=4, num_layers=2, dropout=0.1, pos_enc=sinusoidal
+  Parameters : 18,241
+    Epoch  10/30  loss=0.1309
+    Epoch  20/30  loss=0.1081
+    Epoch  30/30  loss=0.1083
+  Positive ✓ (TP): 326/332 (98.2%)
+  Positive ✗ (FN): 6/332 (1.8%)
+  Negative ✓ (TN): 2345/2390 (98.1%)
+  Negative ✗ (FP): 45/2390 (1.9%)
+  Accuracy : 0.9813  Precision: 0.8787  Recall: 0.9819  F1: 0.9275
+
+===========================================================================
+  FINAL SUMMARY — Entropy Sequence Classification
+  Task: PII-generated text vs. everything else (entropy signal only)
+  Test set — Positive: 332, Negative: 2390, Total: 2722
+===========================================================================
+Method                  Accuracy  Precision   Recall       F1     TP     FP     FN
+---------------------------------------------------------------------------
+1. LR                     0.9232     0.6158   0.9849   0.7578    327    204      5
+2. Random Forest          0.9614     0.7646   0.9880   0.8620    328    101      4
+4. LSTM                   0.1220     0.1220   1.0000   0.2174    332   2390      0
+5. GRU                    0.8762     0.3333   0.0151   0.0288      5     10    327
+6. CNN-1D                 0.9853     0.9171   0.9669   0.9413    321     29     11
+7. MultiScale-CNN         0.9607     0.8134   0.8795   0.8452    292     67     40
+8. CNN-2ch                0.9864     0.9251   0.9669   0.9455    321     26     11
+9. CNN+LSTM               0.1220     0.1211   0.9910   0.2159    329   2387      3
+10. Transformer           0.9813     0.8787   0.9819   0.9275    326     45      6
+===========================================================================
