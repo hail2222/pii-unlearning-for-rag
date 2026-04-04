@@ -9,6 +9,7 @@ Three-Way Method Comparison  (entropy: M2)
 
   [Entropy only (M2)]
     TP=20  FN=9  FP=83  TN=150
+    Accuracy  : 0.6489
     Precision : 0.1942
     Recall    : 0.6897
     F1        : 0.3030
@@ -20,6 +21,7 @@ Three-Way Method Comparison  (entropy: M2)
 
   [Probe only]
     TP=29  FN=0  FP=1  TN=232
+    Accuracy  : 0.9962
     Precision : 0.9667
     Recall    : 1.0000
     F1        : 0.9831
@@ -31,18 +33,24 @@ Three-Way Method Comparison  (entropy: M2)
 
   [Entropy + Probe (M2)]
     TP=20  FN=9  FP=12  TN=221
+    Accuracy  : 0.9198
     Precision : 0.6250
     Recall    : 0.6897
     F1        : 0.6557
 
 ============================================================
 Summary  (entropy: M2)
+  Task: PII-generated text vs. everything else
+  Test — Positive: 29, Negative: 233
 ============================================================
 Metric         Entropy only   Probe only   Pipeline
 --------------------------------------------------
+accuracy             0.6489       0.9962     0.9198
 precision            0.1942       0.9667     0.6250
 recall               0.6897       1.0000     0.6897
 f1                   0.3030       0.9831     0.6557
+--------------------------------------------------
 TP                       20           29         20
 FP                       83            1         12
 FN                        9            0          9
+TN                      150          232        221
