@@ -99,7 +99,7 @@ def find_pii_token_positions(
                 continue
             for i in range(n - m + 1):
                 if generated_ids[i:i + m] == seq:
-                    positions.add(i)
+                    positions.update(range(i, i + m))  # entire span, not just start
     return sorted(positions)
 
 
