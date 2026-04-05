@@ -541,9 +541,8 @@ def print_final_summary(results, n_pos, n_main_neg, n_c):
     print(f"  [C] Combined (pos={n_pos}, neg={n_main_neg+n_c}):")
     print(f"  {'Method':<30} {'F1':>6} {'Prec':>6} {'Rec':>6} {'Acc':>6}")
     print(f"  {'-'*55}")
-    for name, _, _ in rows:
-        key = name[:4].lower().replace(" ", "").replace(":", "")
-        m = results[f"exp{rows.index((name, _, _))+1}"]["combined"]
+    for idx, (name, _, _) in enumerate(rows):
+        m = results[f"exp{idx+1}"]["combined"]
         print(f"  {name:<30} {m['f1']:6.4f} {m['prec']:6.4f} {m['rec']:6.4f} {m['acc']:6.4f}")
 
     print(f"\n  Notes:")
