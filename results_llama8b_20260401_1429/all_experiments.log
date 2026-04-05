@@ -1,0 +1,132 @@
+====================================================================
+  Full Experiment Suite — 4 Experiments, Proper Data Protocol
+  Results dir : results_llama8b_20260401_1429
+  Split       : 80/20, seed=42
+  Epochs      : 30  Device: cuda
+  CV folds    : 5 (probe C selection, train only)
+====================================================================
+
+  Loading data and creating train/test split...
+  Train — pos=1332, neg=563
+  Test  — pos=332,  neg=140 (not_loc=117, B=23)
+  C_no_context — 2250 samples (additional evaluation only)
+
+====================================================================
+  Experiment 1: Entropy CNN-2ch (full 80-token sequence)
+====================================================================
+  Model: TwoChannelCNN (entropy + Δentropy)
+  Architecture: channels=(64, 128, 256), kernels=(5, 3, 3), dropout=0.3
+  Params: 156,993
+  Data leakage check:
+    - No feature scaling (CNN processes raw sequences)
+    - Architecture is fixed (from hyperparam_tuning_v2 best config)
+    - C_no_context excluded from training
+    Epoch  10/30  loss=0.1168
+    Epoch  20/30  loss=0.0875
+    Epoch  30/30  loss=0.0756
+  [A: Main test] F1=0.9485  Prec=0.9280  Rec=0.9699  Acc=0.9258
+    TP=322  FP=25  FN=10  TN=115  (pos=332, neg=140)
+  [B: C_no_context] FP=0/2250  FP_rate=0.0%  TN=2250
+  [C: Combined (main + C)] F1=0.9485  Prec=0.9280  Rec=0.9699  Acc=0.9871
+    TP=322  FP=25  FN=10  TN=2365  (pos=332, neg=2390)
+
+====================================================================
+  Experiment 2: Prefix CNN (K=5, real-time)
+====================================================================
+  Model: PrefixCNN — sees only entropy[0:5]
+  Params: 39,361
+  Latency: median PII at token 9 → detected at token 5 → +4 tokens lead
+  Data leakage check:
+    - Input is entropy[0:5] only (no future information)
+    - Fixed architecture (no test-set selection)
+    - C_no_context excluded from training
+    Epoch  10/30  loss=0.1342
+    Epoch  20/30  loss=0.1228
+    Epoch  30/30  loss=0.1196
+  [A: Main test] F1=0.9506  Prec=0.9185  Rec=0.9849  Acc=0.9280
+    TP=327  FP=29  FN=5  TN=111  (pos=332, neg=140)
+  [B: C_no_context] FP=1/2250  FP_rate=0.0%  TN=2249
+  [C: Combined (main + C)] F1=0.9492  Prec=0.9160  Rec=0.9849  Acc=0.9871
+    TP=327  FP=30  FN=5  TN=2360  (pos=332, neg=2390)
+
+====================================================================
+  Experiment 3: Linear Probe standalone (hidden states only)
+====================================================================
+  Signal: red_flag_hidden_states (ΔH-drop moments, LLaMA layer 24, dim=4096)
+  Data leakage check:
+    - StandardScaler fit on TRAINING hidden states only
+    - Probe C selected by 5-fold CV on training data only
+    - Hidden states are pre-computed from LLaMA (not learned)
+    - C_no_context excluded from training
+
+  Probe train: PII_hs=1534, NonPII_hs=526, dim=4096
+    C=0.01    CV F1=0.9764 ± 0.0091
+    C=0.1     CV F1=0.9789 ± 0.0074
+    C=1.0     CV F1=0.9783 ± 0.0084
+    C=10.0    CV F1=0.9755 ± 0.0078
+    C=100.0   CV F1=0.9725 ± 0.0068
+  → Best C=0.1  (CV F1=0.9789)
+  Hidden state coverage:
+    test_pos: 274/332 have hs (82.5%)
+    test_neg: 85/140 have hs (60.7%)
+    c_neg:    1283/2250 have hs (57.0%)
+  Fallback (no hidden states): predict NEGATIVE
+  [A: Main test] F1=0.8878  Prec=0.9647  Rec=0.8223  Acc=0.8538
+    TP=273  FP=10  FN=59  TN=130  (pos=332, neg=140)
+  [B: C_no_context] FP=92/2250  FP_rate=4.1%  TN=2158
+  [C: Combined (main + C)] F1=0.7723  Prec=0.7280  Rec=0.8223  Acc=0.9409
+    TP=273  FP=102  FN=59  TN=2288  (pos=332, neg=2390)
+
+====================================================================
+  Experiment 4: Pipeline — Prefix CNN (K=5) → Linear Probe
+====================================================================
+  Step 1: Prefix CNN sees entropy[0:5] → flags samples as PII/non-PII
+  Step 2: For CNN-positive samples, run Probe on hidden states
+  Fallback (CNN=1 but no hidden states): predict POSITIVE (conservative)
+  Data leakage check:
+    - Prefix CNN trained on train set (reused from Exp 2)
+    - Probe trained on train set (reused from Exp 3)
+    - No new fitting on test data
+    - C_no_context excluded from training
+  [A: Main test] F1=0.9631  Prec=0.9449  Rec=0.9819  Acc=0.9470
+    TP=326  FP=19  FN=6  TN=121  (pos=332, neg=140)
+    FP breakdown — A_not_located=0  B_general=0
+  [B: C_no_context] FP=1/2250  FP_rate=0.0%  TN=2249
+  [C: Combined (main + C)] F1=0.9617  Prec=0.9422  Rec=0.9819  Acc=0.9904
+    TP=326  FP=20  FN=6  TN=2370  (pos=332, neg=2390)
+
+====================================================================
+  FINAL SUMMARY
+====================================================================
+  Test set: pos=332  main_neg=140  C_no_context=2250
+
+  [A] Main test (pos=332, neg=140):
+  Method                             F1   Prec    Rec    Acc   TP   FP   FN    TN
+  ---------------------------------------------------------------------------
+  Exp1: CNN-2ch (80t)            0.9485 0.9280 0.9699 0.9258  322   25   10   115
+  Exp2: Prefix CNN (K=5)         0.9506 0.9185 0.9849 0.9280  327   29    5   111
+  Exp3: Linear Probe             0.8878 0.9647 0.8223 0.8538  273   10   59   130
+  Exp4: Prefix CNN→Probe         0.9631 0.9449 0.9819 0.9470  326   19    6   121
+
+  [B] C_no_context FP rate (all 2250 samples are negative):
+  Method                             FP  FP_rate     TN
+  -------------------------------------------------------
+  Exp1: CNN-2ch (80t)                 0     0.0%    2250
+  Exp2: Prefix CNN (K=5)              1     0.0%    2249
+  Exp3: Linear Probe                 92     4.1%    2158
+  Exp4: Prefix CNN→Probe              1     0.0%    2249
+
+  [C] Combined (pos=332, neg=2390):
+  Method                             F1   Prec    Rec    Acc
+  -------------------------------------------------------
+  Exp1: CNN-2ch (80t)            0.9485 0.9280 0.9699 0.9871
+  Exp2: Prefix CNN (K=5)         0.9492 0.9160 0.9849 0.9871
+  Exp3: Linear Probe             0.7723 0.7280 0.8223 0.9409
+  Exp4: Prefix CNN→Probe         0.9617 0.9422 0.9819 0.9904
+
+  Notes:
+  - All experiments use identical train/test split (seed=42)
+  - Probe C selected by 5-fold CV on training hidden states
+  - CNN architecture fixed (no test-set hyperparameter selection)
+  - C_no_context never used in training for any experiment
+====================================================================

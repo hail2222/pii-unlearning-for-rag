@@ -1,0 +1,409 @@
+=================================================================
+  Hyperparameter Tuning v2 — Proper CV Protocol
+  Results dir : results_llama8b_20260401_1429
+  Split       : 80% train / 20% test, seed=42
+  CV folds    : 5  (on train set only)
+  Epochs      : 30  Device: cuda
+=================================================================
+
+  Protocol:
+    Step 1. For each config: k-fold CV on training set → CV F1
+    Step 2. Select best config by CV F1  [test set not used]
+    Step 3. Re-train best config on full training set
+    Step 4. Evaluate ONCE on test set → final reported result
+=================================================================
+
+  Train — pos=1332, neg=563
+  Test  — pos=332,  neg=2390
+
+=================================================================
+  CV Grid Search: CNN-2ch  (5-fold CV on train set)
+  Train: pos=1332, neg=563
+=================================================================
+      Epoch  10/30  loss=0.2150
+      Epoch  20/30  loss=0.1653
+      Epoch  30/30  loss=0.1541
+      Epoch  10/30  loss=0.2138
+      Epoch  20/30  loss=0.1771
+      Epoch  30/30  loss=0.1620
+      Epoch  10/30  loss=0.2108
+      Epoch  20/30  loss=0.1740
+      Epoch  30/30  loss=0.1695
+      Epoch  10/30  loss=0.2055
+      Epoch  20/30  loss=0.1612
+      Epoch  30/30  loss=0.1536
+      Epoch  10/30  loss=0.1989
+      Epoch  20/30  loss=0.1674
+      Epoch  30/30  loss=0.1627
+  [ 1/10] {'channels': (16, 32, 64), 'kernels': (3, 3, 3), 'dropout': 0.2}  params=10,001
+          CV F1 = 0.9427 ± 0.0078 ←best
+      Epoch  10/30  loss=0.2213
+      Epoch  20/30  loss=0.1701
+      Epoch  30/30  loss=0.1582
+      Epoch  10/30  loss=0.2067
+      Epoch  20/30  loss=0.1775
+      Epoch  30/30  loss=0.1758
+      Epoch  10/30  loss=0.2221
+      Epoch  20/30  loss=0.1845
+      Epoch  30/30  loss=0.1780
+      Epoch  10/30  loss=0.2221
+      Epoch  20/30  loss=0.1850
+      Epoch  30/30  loss=0.1685
+      Epoch  10/30  loss=0.2080
+      Epoch  20/30  loss=0.1697
+      Epoch  30/30  loss=0.1640
+  [ 2/10] {'channels': (16, 32, 64), 'kernels': (5, 3, 3), 'dropout': 0.3}  params=10,065
+          CV F1 = 0.9433 ± 0.0021 ←best
+      Epoch  10/30  loss=0.1789
+      Epoch  20/30  loss=0.1310
+      Epoch  30/30  loss=0.1198
+      Epoch  10/30  loss=0.1732
+      Epoch  20/30  loss=0.1070
+      Epoch  30/30  loss=0.0988
+      Epoch  10/30  loss=0.1673
+      Epoch  20/30  loss=0.1284
+      Epoch  30/30  loss=0.1160
+      Epoch  10/30  loss=0.1842
+      Epoch  20/30  loss=0.1284
+      Epoch  30/30  loss=0.1247
+      Epoch  10/30  loss=0.1669
+      Epoch  20/30  loss=0.1343
+      Epoch  30/30  loss=0.1222
+  [ 3/10] {'channels': (32, 64, 128), 'kernels': (3, 3, 3), 'dropout': 0.2}  params=39,457
+          CV F1 = 0.9542 ± 0.0074 ←best
+      Epoch  10/30  loss=0.1562
+      Epoch  20/30  loss=0.1178
+      Epoch  30/30  loss=0.1122
+      Epoch  10/30  loss=0.1981
+      Epoch  20/30  loss=0.1406
+      Epoch  30/30  loss=0.1310
+      Epoch  10/30  loss=0.1567
+      Epoch  20/30  loss=0.1212
+      Epoch  30/30  loss=0.1125
+      Epoch  10/30  loss=0.1523
+      Epoch  20/30  loss=0.1127
+      Epoch  30/30  loss=0.1063
+      Epoch  10/30  loss=0.1580
+      Epoch  20/30  loss=0.1349
+      Epoch  30/30  loss=0.1203
+  [ 4/10] {'channels': (32, 64, 128), 'kernels': (5, 3, 3), 'dropout': 0.3}  params=39,585
+          CV F1 = 0.9569 ± 0.0075 ←best
+      Epoch  10/30  loss=0.1512
+      Epoch  20/30  loss=0.1111
+      Epoch  30/30  loss=0.1107
+      Epoch  10/30  loss=0.1479
+      Epoch  20/30  loss=0.1154
+      Epoch  30/30  loss=0.1026
+      Epoch  10/30  loss=0.1732
+      Epoch  20/30  loss=0.1305
+      Epoch  30/30  loss=0.1216
+      Epoch  10/30  loss=0.1777
+      Epoch  20/30  loss=0.1355
+      Epoch  30/30  loss=0.1248
+      Epoch  10/30  loss=0.1752
+      Epoch  20/30  loss=0.1266
+      Epoch  30/30  loss=0.1171
+  [ 5/10] {'channels': (32, 64, 128), 'kernels': (7, 3, 3), 'dropout': 0.3}  params=39,713
+          CV F1 = 0.9561 ± 0.0060
+      Epoch  10/30  loss=0.1557
+      Epoch  20/30  loss=0.1096
+      Epoch  30/30  loss=0.1001
+      Epoch  10/30  loss=0.1723
+      Epoch  20/30  loss=0.1348
+      Epoch  30/30  loss=0.1194
+      Epoch  10/30  loss=0.1683
+      Epoch  20/30  loss=0.1231
+      Epoch  30/30  loss=0.1145
+      Epoch  10/30  loss=0.1768
+      Epoch  20/30  loss=0.1376
+      Epoch  30/30  loss=0.1223
+      Epoch  10/30  loss=0.1841
+      Epoch  20/30  loss=0.1419
+      Epoch  30/30  loss=0.1236
+  [ 6/10] {'channels': (32, 64, 128), 'kernels': (5, 3, 3), 'dropout': 0.1}  params=39,585
+          CV F1 = 0.9543 ± 0.0033
+      Epoch  10/30  loss=0.1153
+      Epoch  20/30  loss=0.0904
+      Epoch  30/30  loss=0.0800
+      Epoch  10/30  loss=0.1264
+      Epoch  20/30  loss=0.0883
+      Epoch  30/30  loss=0.0828
+      Epoch  10/30  loss=0.1237
+      Epoch  20/30  loss=0.0942
+      Epoch  30/30  loss=0.0885
+      Epoch  10/30  loss=0.1280
+      Epoch  20/30  loss=0.0860
+      Epoch  30/30  loss=0.0724
+      Epoch  10/30  loss=0.1321
+      Epoch  20/30  loss=0.1012
+      Epoch  30/30  loss=0.0889
+  [ 7/10] {'channels': (64, 128, 256), 'kernels': (5, 3, 3), 'dropout': 0.3}  params=156,993
+          CV F1 = 0.9640 ± 0.0061 ←best
+      Epoch  10/30  loss=0.1173
+      Epoch  20/30  loss=0.0779
+      Epoch  30/30  loss=0.0658
+      Epoch  10/30  loss=0.1139
+      Epoch  20/30  loss=0.0734
+      Epoch  30/30  loss=0.0581
+      Epoch  10/30  loss=0.1184
+      Epoch  20/30  loss=0.0998
+      Epoch  30/30  loss=0.0883
+      Epoch  10/30  loss=0.1185
+      Epoch  20/30  loss=0.0808
+      Epoch  30/30  loss=0.0663
+      Epoch  10/30  loss=0.1247
+      Epoch  20/30  loss=0.0925
+      Epoch  30/30  loss=0.0798
+  [ 8/10] {'channels': (64, 128, 256), 'kernels': (7, 5, 3), 'dropout': 0.3}  params=173,633
+          CV F1 = 0.9640 ± 0.0047 ←best
+      Epoch  10/30  loss=0.1201
+      Epoch  20/30  loss=0.0944
+      Epoch  30/30  loss=0.0824
+      Epoch  10/30  loss=0.1257
+      Epoch  20/30  loss=0.0912
+      Epoch  30/30  loss=0.0855
+      Epoch  10/30  loss=0.1273
+      Epoch  20/30  loss=0.1019
+      Epoch  30/30  loss=0.0932
+      Epoch  10/30  loss=0.1206
+      Epoch  20/30  loss=0.0888
+      Epoch  30/30  loss=0.0776
+      Epoch  10/30  loss=0.1290
+      Epoch  20/30  loss=0.0948
+      Epoch  30/30  loss=0.0876
+  [ 9/10] {'channels': (64, 128, 256), 'kernels': (5, 3, 3), 'dropout': 0.1}  params=156,993
+          CV F1 = 0.9629 ± 0.0058
+      Epoch  10/30  loss=0.1845
+      Epoch  20/30  loss=0.1340
+      Epoch  30/30  loss=0.1329
+      Epoch  10/30  loss=0.1737
+      Epoch  20/30  loss=0.1270
+      Epoch  30/30  loss=0.1225
+      Epoch  10/30  loss=0.1610
+      Epoch  20/30  loss=0.1235
+      Epoch  30/30  loss=0.1188
+      Epoch  10/30  loss=0.1807
+      Epoch  20/30  loss=0.1332
+      Epoch  30/30  loss=0.1283
+      Epoch  10/30  loss=0.1735
+      Epoch  20/30  loss=0.1224
+      Epoch  30/30  loss=0.1151
+  [10/10] {'channels': (32, 64, 128), 'kernels': (5, 3, 3), 'dropout': 0.5}  params=39,585
+          CV F1 = 0.9536 ± 0.0066
+
+  ★ Best config (by CV F1=0.9640): {'channels': (64, 128, 256), 'kernels': (7, 5, 3), 'dropout': 0.3}
+
+  Re-training best CNN-2ch config on full training set...
+  Params: 173,633
+      Epoch  10/30  loss=0.1103
+      Epoch  20/30  loss=0.0870
+      Epoch  30/30  loss=0.0680
+
+  [TEST SET — CNN-2ch best config]
+    F1=0.9443  Prec=0.9200  Rec=0.9699  Acc=0.9860
+    TP=322  FP=28  FN=10  TN=2362
+
+=================================================================
+  CV Grid Search: Transformer  (5-fold CV on train set)
+  Train: pos=1332, neg=563
+=================================================================
+      Epoch  10/30  loss=0.1734
+      Epoch  20/30  loss=0.1201
+      Epoch  30/30  loss=0.1162
+      Epoch  10/30  loss=0.1883
+      Epoch  20/30  loss=0.1831
+      Epoch  30/30  loss=0.1734
+      Epoch  10/30  loss=0.1817
+      Epoch  20/30  loss=0.1638
+      Epoch  30/30  loss=0.1466
+      Epoch  10/30  loss=0.1794
+      Epoch  20/30  loss=0.1579
+      Epoch  30/30  loss=0.1506
+      Epoch  10/30  loss=0.1772
+      Epoch  20/30  loss=0.1547
+      Epoch  30/30  loss=0.1509
+  [ 1/10] {'d_model': 32, 'nhead': 2, 'num_layers': 1, 'dim_feedforward': 64, 'dropout': 0.1}  params=9,153
+          CV F1 = 0.9499 ± 0.0030 ←best
+      Epoch  10/30  loss=0.1444
+      Epoch  20/30  loss=0.1147
+      Epoch  30/30  loss=0.1097
+      Epoch  10/30  loss=0.1622
+      Epoch  20/30  loss=0.1266
+      Epoch  30/30  loss=0.1159
+      Epoch  10/30  loss=0.1794
+      Epoch  20/30  loss=0.1646
+      Epoch  30/30  loss=0.1498
+      Epoch  10/30  loss=0.1856
+      Epoch  20/30  loss=0.1526
+      Epoch  30/30  loss=0.1463
+      Epoch  10/30  loss=0.1770
+      Epoch  20/30  loss=0.1408
+      Epoch  30/30  loss=0.1281
+  [ 2/10] {'d_model': 32, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 64, 'dropout': 0.1}  params=17,697
+          CV F1 = 0.9550 ± 0.0088 ←best
+      Epoch  10/30  loss=0.1259
+      Epoch  20/30  loss=0.1092
+      Epoch  30/30  loss=0.1016
+      Epoch  10/30  loss=0.1631
+      Epoch  20/30  loss=0.1292
+      Epoch  30/30  loss=0.1171
+      Epoch  10/30  loss=0.1830
+      Epoch  20/30  loss=0.1409
+      Epoch  30/30  loss=0.1238
+      Epoch  10/30  loss=0.1906
+      Epoch  20/30  loss=0.1748
+      Epoch  30/30  loss=0.1651
+      Epoch  10/30  loss=0.1614
+      Epoch  20/30  loss=0.1223
+      Epoch  30/30  loss=0.1202
+  [ 3/10] {'d_model': 32, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 128, 'dropout': 0.1}  params=26,017
+          CV F1 = 0.9575 ± 0.0065 ←best
+      Epoch  10/30  loss=0.1601
+      Epoch  20/30  loss=0.1204
+      Epoch  30/30  loss=0.1160
+      Epoch  10/30  loss=0.1773
+      Epoch  20/30  loss=0.1417
+      Epoch  30/30  loss=0.1268
+      Epoch  10/30  loss=0.1937
+      Epoch  20/30  loss=0.1860
+      Epoch  30/30  loss=0.1806
+      Epoch  10/30  loss=0.1850
+      Epoch  20/30  loss=0.1772
+      Epoch  30/30  loss=0.1717
+      Epoch  10/30  loss=0.1863
+      Epoch  20/30  loss=0.1514
+      Epoch  30/30  loss=0.1340
+  [ 4/10] {'d_model': 32, 'nhead': 4, 'num_layers': 4, 'dim_feedforward': 128, 'dropout': 0.2}  params=51,425
+          CV F1 = 0.9531 ± 0.0052
+      Epoch  10/30  loss=0.1373
+      Epoch  20/30  loss=0.1038
+      Epoch  30/30  loss=0.0941
+      Epoch  10/30  loss=0.1762
+      Epoch  20/30  loss=0.1176
+      Epoch  30/30  loss=0.1035
+      Epoch  10/30  loss=0.1775
+      Epoch  20/30  loss=0.1280
+      Epoch  30/30  loss=0.1104
+      Epoch  10/30  loss=0.1456
+      Epoch  20/30  loss=0.1151
+      Epoch  30/30  loss=0.0965
+      Epoch  10/30  loss=0.1584
+      Epoch  20/30  loss=0.1406
+      Epoch  30/30  loss=0.1303
+  [ 5/10] {'d_model': 64, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 128, 'dropout': 0.1}  params=69,185
+          CV F1 = 0.9550 ± 0.0068
+      Epoch  10/30  loss=0.1526
+      Epoch  20/30  loss=0.1319
+      Epoch  30/30  loss=0.1179
+      Epoch  10/30  loss=0.1422
+      Epoch  20/30  loss=0.1093
+      Epoch  30/30  loss=0.1054
+      Epoch  10/30  loss=0.1753
+      Epoch  20/30  loss=0.1487
+      Epoch  30/30  loss=0.1402
+      Epoch  10/30  loss=0.1856
+      Epoch  20/30  loss=0.1379
+      Epoch  30/30  loss=0.1202
+      Epoch  10/30  loss=0.1770
+      Epoch  20/30  loss=0.1241
+      Epoch  30/30  loss=0.1062
+  [ 6/10] {'d_model': 64, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 256, 'dropout': 0.2}  params=102,209
+          CV F1 = 0.9559 ± 0.0100
+      Epoch  10/30  loss=0.1274
+      Epoch  20/30  loss=0.1052
+      Epoch  30/30  loss=0.0914
+      Epoch  10/30  loss=0.1341
+      Epoch  20/30  loss=0.1144
+      Epoch  30/30  loss=0.1022
+      Epoch  10/30  loss=0.1303
+      Epoch  20/30  loss=0.1070
+      Epoch  30/30  loss=0.0908
+      Epoch  10/30  loss=0.1776
+      Epoch  20/30  loss=0.1104
+      Epoch  30/30  loss=0.1022
+      Epoch  10/30  loss=0.1494
+      Epoch  20/30  loss=0.1108
+      Epoch  30/30  loss=0.0973
+  [ 7/10] {'d_model': 64, 'nhead': 8, 'num_layers': 2, 'dim_feedforward': 256, 'dropout': 0.1}  params=102,209
+          CV F1 = 0.9592 ± 0.0084 ←best
+      Epoch  10/30  loss=0.1639
+      Epoch  20/30  loss=0.1188
+      Epoch  30/30  loss=0.1110
+      Epoch  10/30  loss=0.1441
+      Epoch  20/30  loss=0.1249
+      Epoch  30/30  loss=0.1093
+      Epoch  10/30  loss=0.1840
+      Epoch  20/30  loss=0.1733
+      Epoch  30/30  loss=0.1473
+      Epoch  10/30  loss=0.1804
+      Epoch  20/30  loss=0.1669
+      Epoch  30/30  loss=0.1479
+      Epoch  10/30  loss=0.1585
+      Epoch  20/30  loss=0.1152
+      Epoch  30/30  loss=0.1082
+  [ 8/10] {'d_model': 64, 'nhead': 8, 'num_layers': 4, 'dim_feedforward': 256, 'dropout': 0.2}  params=202,177
+          CV F1 = 0.9537 ± 0.0120
+      Epoch  10/30  loss=0.1299
+      Epoch  20/30  loss=0.1039
+      Epoch  30/30  loss=0.0881
+      Epoch  10/30  loss=0.1441
+      Epoch  20/30  loss=0.1152
+      Epoch  30/30  loss=0.0974
+      Epoch  10/30  loss=0.1244
+      Epoch  20/30  loss=0.0986
+      Epoch  30/30  loss=0.0846
+      Epoch  10/30  loss=0.1507
+      Epoch  20/30  loss=0.1175
+      Epoch  30/30  loss=0.0952
+      Epoch  10/30  loss=0.1609
+      Epoch  20/30  loss=0.1403
+      Epoch  30/30  loss=0.1168
+  [ 9/10] {'d_model': 128, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 256, 'dropout': 0.1}  params=273,537
+          CV F1 = 0.9508 ± 0.0266
+      Epoch  10/30  loss=0.1305
+      Epoch  20/30  loss=0.0913
+      Epoch  30/30  loss=0.0744
+      Epoch  10/30  loss=0.1575
+      Epoch  20/30  loss=0.1218
+      Epoch  30/30  loss=0.1094
+      Epoch  10/30  loss=0.1489
+      Epoch  20/30  loss=0.1134
+      Epoch  30/30  loss=0.1026
+      Epoch  10/30  loss=0.1744
+      Epoch  20/30  loss=0.1185
+      Epoch  30/30  loss=0.0913
+      Epoch  10/30  loss=0.1894
+      Epoch  20/30  loss=0.1467
+      Epoch  30/30  loss=0.1339
+  [10/10] {'d_model': 128, 'nhead': 8, 'num_layers': 2, 'dim_feedforward': 512, 'dropout': 0.2}  params=405,121
+          CV F1 = 0.9554 ± 0.0055
+
+  ★ Best config (by CV F1=0.9592): {'d_model': 64, 'nhead': 8, 'num_layers': 2, 'dim_feedforward': 256, 'dropout': 0.1}
+
+  Re-training best Transformer config on full training set...
+  Params: 102,209
+      Epoch  10/30  loss=0.1484
+      Epoch  20/30  loss=0.1224
+      Epoch  30/30  loss=0.0990
+
+  [TEST SET — Transformer best config]
+    F1=0.8950  Prec=0.8265  Rec=0.9759  Acc=0.9721
+    TP=324  FP=68  FN=8  TN=2322
+
+=================================================================
+  FINAL SUMMARY — Best config per model (proper CV protocol)
+  Config selected by: 5-fold CV F1 on train set
+  Reported performance: single evaluation on held-out test set
+  Test set: pos=332, neg=2390
+=================================================================
+  Model                F1    Prec     Rec     Acc    TP    FP    FN
+  ------------------------------------------------------------
+  CNN-2ch          0.9443  0.9200  0.9699  0.9860   322    28    10
+    Config: {'channels': (64, 128, 256), 'kernels': (7, 5, 3), 'dropout': 0.3}
+  Transformer      0.8950  0.8265  0.9759  0.9721   324    68     8
+    Config: {'d_model': 64, 'nhead': 8, 'num_layers': 2, 'dim_feedforward': 256, 'dropout': 0.1}
+
+  [Reference: v1 results (test-set selection bias)]
+  CNN-2ch      F1=0.9513  Prec=0.9333  Rec=0.9699  Acc=0.9879
+  Transformer  F1=0.9397  Prec=0.8984  Rec=0.9849  Acc=0.9846
+=================================================================
