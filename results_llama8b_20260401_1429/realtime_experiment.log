@@ -1,0 +1,145 @@
+
+==============================================================
+  Real-time PII Detection Experiment
+  Results dir : results_llama8b_20260401_1429
+  Split       : 80% train / 20% test, seed=42
+  Train       : pos=1332, neg=563
+  Test        : pos=332,  neg=2390
+  Prefix lengths: [5, 10, 15, 20, 25, 30, 40, 50, 60, 80]
+==============================================================
+
+==============================================================
+  Analysis 1: PII First-Appearance Position Distribution
+  (n=1664 A_located samples)
+==============================================================
+  PII first token position:
+    min    : 0
+    mean   : 8.4
+    median : 9.0
+    max    : 63
+    std    : 8.6
+    p10    : 0.0
+    p25    : 0.0
+    p50    : 9.0
+    p75    : 13.0
+    p90    : 20.0
+
+  Cumulative: samples where PII starts before token T
+      T    count        %
+  ----------------------
+      5      652    39.2%
+     10      888    53.4%
+     15     1385    83.2%
+     20     1496    89.9%
+     25     1588    95.4%
+     30     1633    98.1%
+     40     1651    99.2%
+     50     1661    99.8%
+     60     1663    99.9%
+     80     1664   100.0%
+
+==============================================================
+  Analysis 2: Prefix-Length Sweep (1D CNN)
+  Train: pos=1332, neg=563
+  Test : pos=332,  neg=2390
+  Device: cuda, epochs=30
+==============================================================
+
+  [Prefix T=5]
+    Epoch  10/30  loss=0.1341
+    Epoch  20/30  loss=0.1185
+    Epoch  30/30  loss=0.1116
+  → F1=0.9207  Prec=0.8690  Rec=0.9789  TP=325  FP=49  FN=7
+
+  [Prefix T=10]
+    Epoch  10/30  loss=0.1567
+    Epoch  20/30  loss=0.1324
+    Epoch  30/30  loss=0.1242
+  → F1=0.9506  Prec=0.9185  Rec=0.9849  TP=327  FP=29  FN=5
+
+  [Prefix T=15]
+    Epoch  10/30  loss=0.1650
+    Epoch  20/30  loss=0.1296
+    Epoch  30/30  loss=0.1206
+  → F1=0.9465  Prec=0.9109  Rec=0.9849  TP=327  FP=32  FN=5
+
+  [Prefix T=20]
+    Epoch  10/30  loss=0.1862
+    Epoch  20/30  loss=0.1566
+    Epoch  30/30  loss=0.1499
+  → F1=0.9369  Prec=0.9140  Rec=0.9608  TP=319  FP=30  FN=13
+
+  [Prefix T=25]
+    Epoch  10/30  loss=0.1824
+    Epoch  20/30  loss=0.1230
+    Epoch  30/30  loss=0.1189
+  → F1=0.9488  Prec=0.9231  Rec=0.9759  TP=324  FP=27  FN=8
+
+  [Prefix T=30]
+    Epoch  10/30  loss=0.1927
+    Epoch  20/30  loss=0.1310
+    Epoch  30/30  loss=0.1246
+  → F1=0.9083  Prec=0.8541  Rec=0.9699  TP=322  FP=55  FN=10
+
+  [Prefix T=40]
+    Epoch  10/30  loss=0.2203
+    Epoch  20/30  loss=0.2015
+    Epoch  30/30  loss=0.1896
+  → F1=0.8457  Prec=0.7792  Rec=0.9247  TP=307  FP=87  FN=25
+
+  [Prefix T=50]
+    Epoch  10/30  loss=0.2244
+    Epoch  20/30  loss=0.2091
+    Epoch  30/30  loss=0.1985
+  → F1=0.8133  Prec=0.7297  Rec=0.9187  TP=305  FP=113  FN=27
+
+  [Prefix T=60]
+    Epoch  10/30  loss=0.2159
+    Epoch  20/30  loss=0.1468
+    Epoch  30/30  loss=0.1443
+  → F1=0.9186  Prec=0.8876  Rec=0.9518  TP=316  FP=40  FN=16
+
+  [Prefix T=80]
+    Epoch  10/30  loss=0.2229
+    Epoch  20/30  loss=0.2164
+    Epoch  30/30  loss=0.2081
+  → F1=0.7963  Prec=0.7028  Rec=0.9187  TP=305  FP=129  FN=27
+
+==============================================================
+  Analysis 3: Latency Analysis
+  (latency = median PII position - prefix T)
+  positive latency = detected BEFORE PII ✅
+  negative latency = detected AFTER PII  ❌
+==============================================================
+
+  Median PII first position: 9.0 tokens
+
+      T       F1    Recall     Latency   Feasible?
+  --------------------------------------------------
+      5   0.9207    0.9789        +4.0   ✅ pre-PII
+     10   0.9506    0.9849        -1.0  ❌ post-PII
+     15   0.9465    0.9849        -6.0  ❌ post-PII
+     20   0.9369    0.9608       -11.0  ❌ post-PII
+     25   0.9488    0.9759       -16.0  ❌ post-PII
+     30   0.9083    0.9699       -21.0  ❌ post-PII
+     40   0.8457    0.9247       -31.0  ❌ post-PII
+     50   0.8133    0.9187       -41.0  ❌ post-PII
+     60   0.9186    0.9518       -51.0  ❌ post-PII
+     80   0.7963    0.9187       -71.0  ❌ post-PII
+
+==============================================================
+  FINAL SUMMARY
+==============================================================
+    Prefix T       F1   Precision    Recall     TP     FP     FN
+  -------------------------------------------------------
+           5   0.9207      0.8690    0.9789    325     49      7
+          10   0.9506      0.9185    0.9849    327     29      5
+          15   0.9465      0.9109    0.9849    327     32      5
+          20   0.9369      0.9140    0.9608    319     30     13
+          25   0.9488      0.9231    0.9759    324     27      8
+          30   0.9083      0.8541    0.9699    322     55     10
+          40   0.8457      0.7792    0.9247    307     87     25
+          50   0.8133      0.7297    0.9187    305    113     27
+          60   0.9186      0.8876    0.9518    316     40     16
+          80   0.7963      0.7028    0.9187    305    129     27
+==============================================================
