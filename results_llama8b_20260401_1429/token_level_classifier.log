@@ -1,0 +1,87 @@
+
+=================================================================
+  Token-level PII Classifier
+  Results dir : results_llama8b_20260401_1429
+  Split       : 80% train / 20% test, seed=42
+  Train samples : 1332  (tokens: 32099, PII tokens: 2088, ratio: 6.5%)
+  Test  samples : 332   (tokens: 8230, PII tokens: 519, ratio: 6.3%)
+  Window size : 5 (→ 11 features)
+=================================================================
+
+=================================================================
+  Method 1: Fixed Threshold (entropy < T)
+=================================================================
+  Best threshold on train: entropy < 2.00  (train F1=0.1223)
+
+  [Fixed threshold (entropy < 2.00)]
+    TP=   518  FN=     1  FP=  7684  TN=    27
+    F1=0.1188  Prec=0.0632  Rec=0.9981  Acc=0.0662
+
+=================================================================
+  Method 2: Adaptive Threshold (entropy < mean - k*std)
+=================================================================
+  k=0.5  train F1=0.0222
+  k=1.0  train F1=0.0009
+  k=1.5  train F1=0.0000
+  k=2.0  train F1=0.0000
+  k=2.5  train F1=0.0000
+  k=3.0  train F1=0.0000
+
+  Best k on train: 0.5  (train F1=0.0222)
+
+  [Adaptive threshold (k=0.5)]
+    TP=    41  FN=   478  FP=  2738  TN=  4973
+    F1=0.0249  Prec=0.0148  Rec=0.0790  Acc=0.6092
+
+=================================================================
+  Method 3: Logistic Regression (single entropy value)
+=================================================================
+  Train tokens: pos=2088, neg=6264 (subsampled)
+  Test  tokens: pos=519, neg=7711
+
+  [LR (single entropy)]
+    TP=    28  FN=   491  FP=   231  TN=  7480
+    F1=0.0720  Prec=0.1081  Rec=0.0539  Acc=0.9123
+
+=================================================================
+  Method 4: Logistic Regression (window=5, 11 features)
+=================================================================
+  Train tokens: pos=2088, neg=6264 (subsampled)
+  Test  tokens: pos=519, neg=7711
+  C=0.01    CV F1=0.3247
+  C=0.1     CV F1=0.3684
+  C=1.0     CV F1=0.3755
+  C=10.0    CV F1=0.3766
+  C=100.0   CV F1=0.3766
+
+  Best C=10.0
+
+  [LR window (C=10.0)]
+    TP=   128  FN=   391  FP=   419  TN=  7292
+    F1=0.2402  Prec=0.2340  Rec=0.2466  Acc=0.9016
+
+=================================================================
+  Method 5: 1D CNN (window=5, 11 features)
+=================================================================
+  Train tokens: pos=2088, neg=6264 (subsampled)
+  Test  tokens: pos=519, neg=7711
+    Epoch  10/30  loss=1.0144
+    Epoch  20/30  loss=1.0077
+    Epoch  30/30  loss=1.0055
+
+  [CNN window]
+    TP=   384  FN=   135  FP=  4725  TN=  2986
+    F1=0.1365  Prec=0.0752  Rec=0.7399  Acc=0.4095
+
+=================================================================
+  FINAL SUMMARY — Token-level PII Classification
+  (A_located only, token-level labels from pii_token_positions)
+=================================================================
+  Method                         F1    Prec     Rec      TP      FP      FN
+  -----------------------------------------------------------------
+  1. Fixed threshold         0.1188  0.0632  0.9981     518    7684       1
+  2. Adaptive threshold      0.0249  0.0148  0.0790      41    2738     478
+  3. LR (single)             0.0720  0.1081  0.0539      28     231     491
+  4. LR (window)             0.2402  0.2340  0.2466     128     419     391
+  5. CNN (window)            0.1365  0.0752  0.7399     384    4725     135
+=================================================================
