@@ -1,0 +1,88 @@
+==============================================================
+  Two-Stage Pipeline: CNN → Linear Probe
+  Results dir : results_llama8b_20260401_1429
+  Split       : 80% train / 20% test, seed=42
+  Epochs      : 30  Batch: 32  Device: cuda
+  Prefix K    : 5  Fallback: keep
+==============================================================
+
+  Train — pos=1332, neg=563
+  Test  — pos=332,  neg=2390 (not_loc=117, B=23, C=2250)
+
+==============================================================
+  Training Linear Probe (red_flag_hidden_states)
+==============================================================
+  Probe train hidden states: PII=1534, Not-PII=526, dim=4096
+  Probe CV Accuracy : 0.967 ± 0.012
+  Probe CV F1       : 0.978 ± 0.008
+  Probe CV AUC      : 0.979 ± 0.011
+
+==============================================================
+  Experiment A: CNN-2ch (full sequence) → Probe
+==============================================================
+  Model params: 156,993
+    Epoch  10/30  loss=0.1150
+    Epoch  20/30  loss=0.0923
+    Epoch  30/30  loss=0.0853
+
+  [CNN-2ch only]  F1=0.9419  Prec=0.9101  Rec=0.9759  TP=324  FP=32  FN=8
+
+==============================================================
+  Pipeline Results  [CNN-2ch → Probe]  (fallback=keep)
+==============================================================
+  TP (PII detected)           : 323/332
+  FN (PII missed)             : 9/332
+  FP (false alarm)            : 19/2390
+    ├ A-not-located          : 9/117
+    ├ B (general)            : 9/23
+    ├ C (no context)         : 1/2250
+  TN (correctly silent)       : 2371/2390
+
+  Precision : 0.9444
+  Recall    : 0.9729
+  F1        : 0.9585
+
+==============================================================
+  Experiment B: Prefix CNN (K=5) → Probe
+==============================================================
+  Model params: 39,361
+    Epoch  10/30  loss=0.1283
+    Epoch  20/30  loss=0.1257
+    Epoch  30/30  loss=0.1190
+
+  [Prefix CNN-5 only]  F1=0.9478  Prec=0.9134  Rec=0.9849  TP=327  FP=31  FN=5
+
+==============================================================
+  Pipeline Results  [Prefix CNN (K=5) → Probe]  (fallback=keep)
+==============================================================
+  TP (PII detected)           : 326/332
+  FN (PII missed)             : 6/332
+  FP (false alarm)            : 20/2390
+    ├ A-not-located          : 10/117
+    ├ B (general)            : 9/23
+    ├ C (no context)         : 1/2250
+  TN (correctly silent)       : 2370/2390
+
+  Precision : 0.9422
+  Recall    : 0.9819
+  F1        : 0.9617
+
+==============================================================
+  FINAL SUMMARY
+  Test set: pos=332, neg=2390
+==============================================================
+  Method                                      F1    Prec     Rec    TP    FP    FN
+  ------------------------------------------------------------------------
+  CNN-2ch only (80 tokens)                0.9419  0.9101  0.9759   324    32     8
+  CNN-2ch → Probe                         0.9585  0.9444  0.9729   323    19     9
+  Prefix CNN-5 only                       0.9478  0.9134  0.9849   327    31     5
+  Prefix CNN-5 → Probe                    0.9617  0.9422  0.9819   326    20     6
+==============================================================
+
+Note:
+  Probe uses red_flag_hidden_states (ΔH-drop moments, layer 24, dim=4096)
+  Fallback='keep': CNN+ samples with no hidden states → kept positive
+
+  Hidden state coverage:
+    pos test with hidden states : 274/332 (82.5%)
+    neg test with hidden states : 1368/2390 (57.2%)
