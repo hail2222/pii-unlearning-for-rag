@@ -1,0 +1,107 @@
+
+=================================================================
+  Hyperparameter Tuning: CNN-2ch / Transformer / LSTM
+  Results dir : results_llama8b_20260401_1429
+  Split       : 80% train / 20% test, seed=42
+  Train       : pos=1332, neg=563
+  Test        : pos=332,  neg=2390
+  Device      : cuda, epochs=30, batch=32
+=================================================================
+
+=================================================================
+  Tuning: CNN-2ch
+=================================================================
+  [ 1/10] {'channels': (16, 32, 64), 'kernels': (3, 3, 3), 'dropout': 0.2}  params=10,001
+        F1=0.9064  Prec=0.8807  Rec=0.9337  TP=310  FP=42  FN=22 ←best
+  [ 2/10] {'channels': (16, 32, 64), 'kernels': (5, 3, 3), 'dropout': 0.3}  params=10,065
+        F1=0.9175  Prec=0.8830  Rec=0.9548  TP=317  FP=42  FN=15 ←best
+  [ 3/10] {'channels': (32, 64, 128), 'kernels': (3, 3, 3), 'dropout': 0.2}  params=39,457
+        F1=0.9382  Prec=0.9167  Rec=0.9608  TP=319  FP=29  FN=13 ←best
+  [ 4/10] {'channels': (32, 64, 128), 'kernels': (5, 3, 3), 'dropout': 0.3}  params=39,585
+        F1=0.9398  Prec=0.9169  Rec=0.9639  TP=320  FP=29  FN=12 ←best
+  [ 5/10] {'channels': (32, 64, 128), 'kernels': (7, 3, 3), 'dropout': 0.3}  params=39,713
+        F1=0.9486  Prec=0.9255  Rec=0.9729  TP=323  FP=26  FN=9 ←best
+  [ 6/10] {'channels': (32, 64, 128), 'kernels': (5, 3, 3), 'dropout': 0.1}  params=39,585
+        F1=0.9386  Prec=0.9119  Rec=0.9669  TP=321  FP=31  FN=11
+  [ 7/10] {'channels': (64, 128, 256), 'kernels': (5, 3, 3), 'dropout': 0.3}  params=156,993
+        F1=0.9513  Prec=0.9333  Rec=0.9699  TP=322  FP=23  FN=10 ←best
+  [ 8/10] {'channels': (64, 128, 256), 'kernels': (7, 5, 3), 'dropout': 0.3}  params=173,633
+        F1=0.9448  Prec=0.9129  Rec=0.9789  TP=325  FP=31  FN=7
+  [ 9/10] {'channels': (64, 128, 256), 'kernels': (5, 3, 3), 'dropout': 0.1}  params=156,993
+        F1=0.9429  Prec=0.9174  Rec=0.9699  TP=322  FP=29  FN=10
+  [10/10] {'channels': (32, 64, 128), 'kernels': (5, 3, 3), 'dropout': 0.5}  params=39,585
+        F1=0.9412  Prec=0.9195  Rec=0.9639  TP=320  FP=28  FN=12
+
+  ★ Best config: {'channels': (64, 128, 256), 'kernels': (5, 3, 3), 'dropout': 0.3}
+  ★ F1=0.9513  Prec=0.9333  Rec=0.9699  Acc=0.9879
+  ★ TP=322  FP=23  FN=10  TN=2367
+
+=================================================================
+  Tuning: Transformer
+=================================================================
+  [ 1/10] {'d_model': 32, 'nhead': 2, 'num_layers': 1, 'dim_feedforward': 64, 'dropout': 0.1}  params=9,153
+        F1=0.8307  Prec=0.7317  Rec=0.9608  TP=319  FP=117  FN=13 ←best
+  [ 2/10] {'d_model': 32, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 64, 'dropout': 0.1}  params=17,697
+        F1=0.9343  Prec=0.8886  Rec=0.9849  TP=327  FP=41  FN=5 ←best
+  [ 3/10] {'d_model': 32, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 128, 'dropout': 0.1}  params=26,017
+        F1=0.9397  Prec=0.8984  Rec=0.9849  TP=327  FP=37  FN=5 ←best
+  [ 4/10] {'d_model': 32, 'nhead': 4, 'num_layers': 4, 'dim_feedforward': 128, 'dropout': 0.2}  params=51,425
+        F1=0.9211  Prec=0.8651  Rec=0.9849  TP=327  FP=51  FN=5
+  [ 5/10] {'d_model': 64, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 128, 'dropout': 0.1}  params=69,185
+        F1=0.8923  Prec=0.8329  Rec=0.9608  TP=319  FP=64  FN=13
+  [ 6/10] {'d_model': 64, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 256, 'dropout': 0.2}  params=102,209
+        F1=0.8871  Prec=0.8089  Rec=0.9819  TP=326  FP=77  FN=6
+  [ 7/10] {'d_model': 64, 'nhead': 8, 'num_layers': 2, 'dim_feedforward': 256, 'dropout': 0.1}  params=102,209
+        F1=0.8994  Prec=0.8385  Rec=0.9699  TP=322  FP=62  FN=10
+  [ 8/10] {'d_model': 64, 'nhead': 8, 'num_layers': 4, 'dim_feedforward': 256, 'dropout': 0.2}  params=202,177
+        F1=0.8669  Prec=0.7705  Rec=0.9910  TP=329  FP=98  FN=3
+  [ 9/10] {'d_model': 128, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 256, 'dropout': 0.1}  params=273,537
+        F1=0.8929  Prec=0.8207  Rec=0.9789  TP=325  FP=71  FN=7
+  [10/10] {'d_model': 128, 'nhead': 8, 'num_layers': 2, 'dim_feedforward': 512, 'dropout': 0.2}  params=405,121
+        F1=0.9224  Prec=0.8819  Rec=0.9669  TP=321  FP=43  FN=11
+
+  ★ Best config: {'d_model': 32, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 128, 'dropout': 0.1}
+  ★ F1=0.9397  Prec=0.8984  Rec=0.9849  Acc=0.9846
+  ★ TP=327  FP=37  FN=5  TN=2353
+
+=================================================================
+  Tuning: LSTM
+=================================================================
+  [ 1/10] {'hidden': 64, 'layers': 1, 'dropout': 0.0, 'lr': 0.001, 'clip_grad': 1.0}  params=19,265
+        F1=0.0288  Prec=0.3333  Rec=0.0151  TP=5  FP=10  FN=327 ←best
+  [ 2/10] {'hidden': 64, 'layers': 1, 'dropout': 0.0, 'lr': 0.0005, 'clip_grad': 1.0}  params=19,265
+        F1=0.2174  Prec=0.1220  Rec=1.0000  TP=332  FP=2390  FN=0 ←best
+  [ 3/10] {'hidden': 64, 'layers': 2, 'dropout': 0.2, 'lr': 0.0005, 'clip_grad': 1.0}  params=52,545
+        F1=0.0400  Prec=0.3889  Rec=0.0211  TP=7  FP=11  FN=325
+  [ 4/10] {'hidden': 64, 'layers': 2, 'dropout': 0.3, 'lr': 0.001, 'clip_grad': 1.0}  params=52,545
+        F1=0.0288  Prec=0.3333  Rec=0.0151  TP=5  FP=10  FN=327
+  [ 5/10] {'hidden': 128, 'layers': 1, 'dropout': 0.0, 'lr': 0.001, 'clip_grad': 1.0}  params=75,393
+        F1=0.0288  Prec=0.3333  Rec=0.0151  TP=5  FP=10  FN=327
+  [ 6/10] {'hidden': 128, 'layers': 1, 'dropout': 0.0, 'lr': 0.0005, 'clip_grad': 1.0}  params=75,393
+        F1=0.0288  Prec=0.3333  Rec=0.0151  TP=5  FP=10  FN=327
+  [ 7/10] {'hidden': 128, 'layers': 2, 'dropout': 0.2, 'lr': 0.0005, 'clip_grad': 1.0}  params=207,489
+        F1=0.0174  Prec=0.2308  Rec=0.0090  TP=3  FP=10  FN=329
+  [ 8/10] {'hidden': 128, 'layers': 2, 'dropout': 0.3, 'lr': 0.001, 'clip_grad': 1.0}  params=207,489
+        F1=0.2174  Prec=0.1220  Rec=1.0000  TP=332  FP=2390  FN=0
+  [ 9/10] {'hidden': 256, 'layers': 1, 'dropout': 0.0, 'lr': 0.0005, 'clip_grad': 1.0}  params=298,241
+        F1=0.2174  Prec=0.1220  Rec=1.0000  TP=332  FP=2390  FN=0
+  [10/10] {'hidden': 256, 'layers': 2, 'dropout': 0.2, 'lr': 0.0005, 'clip_grad': 1.0}  params=824,577
+        F1=0.2174  Prec=0.1220  Rec=1.0000  TP=332  FP=2390  FN=0
+
+  ★ Best config: {'hidden': 64, 'layers': 1, 'dropout': 0.0, 'lr': 0.0005, 'clip_grad': 1.0}
+  ★ F1=0.2174  Prec=0.1220  Rec=1.0000  Acc=0.1220
+  ★ TP=332  FP=2390  FN=0  TN=0
+
+=================================================================
+  FINAL SUMMARY — Best config per model
+  Test set: pos=332, neg=2390
+=================================================================
+  Model                F1    Prec     Rec    TP    FP    FN
+  -------------------------------------------------------
+  CNN-2ch          0.9513  0.9333  0.9699   322    23    10
+    Config: {'channels': (64, 128, 256), 'kernels': (5, 3, 3), 'dropout': 0.3}
+  Transformer      0.9397  0.8984  0.9849   327    37     5
+    Config: {'d_model': 32, 'nhead': 4, 'num_layers': 2, 'dim_feedforward': 128, 'dropout': 0.1}
+  LSTM             0.2174  0.1220  1.0000   332  2390     0
+    Config: {'hidden': 64, 'layers': 1, 'dropout': 0.0, 'lr': 0.0005, 'clip_grad': 1.0}
+=================================================================
