@@ -1,0 +1,48 @@
+======================================================================
+  LLM-as-Judge Baseline: Binary PII Detection
+  Backend      : gemini
+  Judge model  : gemini-2.5-flash
+  Results dir  : results_llama8b_20260401_1429
+  Split        : 80/20, seed=42
+======================================================================
+
+  Loading test splits (same protocol as run_all_experiments.py)...
+  Test pos (A_located) : 332
+  Test neg (main)      : 140
+  C_no_context         : 2250
+
+  Gemini client loaded (key: AIzaSyCp...)
+======================================================================
+  [A] Main Test Evaluation
+======================================================================
+    [Main] 1/472  raw='No'
+    [Main] 50/472  raw='Yes'
+    [Main] 100/472  raw='Yes'
+    [Main] 150/472  raw='Yes'
+    [Main] 200/472  raw='Yes'
+    [Main] 250/472  raw='Yes'
+    [Main] 300/472  raw='No'
+    [Main] 350/472  raw='No'
+    [Main] 400/472  raw='No'
+    [Main] 450/472  raw='No'
+
+  Elapsed: 641.4s  (1.36s/sample)
+  [A: Main test]  F1=0.6733  Prec=0.9827  Rec=0.5120  Acc=0.6504
+    TP=170  FP=3  FN=162  TN=137  (pos=332, neg=140)
+
+  Ambiguous verdicts: 0/472
+
+======================================================================
+  FINAL SUMMARY
+======================================================================
+  Backend: gemini  Model: gemini-2.5-flash
+  Test set: pos=332  neg=140
+
+  Main test (pos=332, neg=140):
+  Method                                        F1    Prec     Rec     Acc    TP    FP    FN    TN
+  ------------------------------------------------------------------------------------------
+  LLM-Judge/gemini (gemini-2.5-flash)       0.6733  0.9827  0.5120  0.6504   170     3   162   137
+
+  Note: LLM-as-Judge is POST-HOC (requires full generated text).
+        Our entropy CNN works DURING generation (real-time).
+======================================================================

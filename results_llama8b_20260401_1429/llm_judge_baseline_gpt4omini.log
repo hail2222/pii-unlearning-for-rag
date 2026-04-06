@@ -1,0 +1,48 @@
+======================================================================
+  LLM-as-Judge Baseline: Binary PII Detection
+  Backend      : openrouter
+  Judge model  : openai/gpt-4o-mini
+  Results dir  : results_llama8b_20260401_1429
+  Split        : 80/20, seed=42
+======================================================================
+
+  Loading test splits (same protocol as run_all_experiments.py)...
+  Test pos (A_located) : 332
+  Test neg (main)      : 140
+  C_no_context         : 2250
+
+  OpenRouter client loaded (key: sk-or-v1...)
+======================================================================
+  [A] Main Test Evaluation
+======================================================================
+    [Main] 1/472  raw='No'
+    [Main] 50/472  raw='Yes'
+    [Main] 100/472  raw='Yes'
+    [Main] 150/472  raw='Yes'
+    [Main] 200/472  raw='Yes'
+    [Main] 250/472  raw='Yes'
+    [Main] 300/472  raw='Yes'
+    [Main] 350/472  raw='Yes'
+    [Main] 400/472  raw='Yes'
+    [Main] 450/472  raw='No'
+
+  Elapsed: 378.5s  (0.80s/sample)
+  [A: Main test]  F1=0.8282  Prec=0.8438  Rec=0.8133  Acc=0.7627
+    TP=270  FP=50  FN=62  TN=90  (pos=332, neg=140)
+
+  Ambiguous verdicts: 0/472
+
+======================================================================
+  FINAL SUMMARY
+======================================================================
+  Backend: openrouter  Model: openai/gpt-4o-mini
+  Test set: pos=332  neg=140
+
+  Main test (pos=332, neg=140):
+  Method                                        F1    Prec     Rec     Acc    TP    FP    FN    TN
+  ------------------------------------------------------------------------------------------
+  LLM-Judge/openrouter (openai/gpt-4o-mini)  0.8282  0.8438  0.8133  0.7627   270    50    62    90
+
+  Note: LLM-as-Judge is POST-HOC (requires full generated text).
+        Our entropy CNN works DURING generation (real-time).
+======================================================================
