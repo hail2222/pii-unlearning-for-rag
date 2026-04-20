@@ -69,14 +69,15 @@ def download_panorama(output_dir: str, max_profiles: int = None):
     rows = []
     skipped = 0
     for row in tqdm(pano_dataset, desc="Processing content rows"):
-        profile_id = (row.get("synthetic_profile_id") or row.get("id") or "").strip()
+        # Actual HuggingFace column names: 'id', 'content-type', 'text'
+        profile_id = (row.get("id") or row.get("synthetic_profile_id") or "").strip()
         if not profile_id or profile_id not in valid_ids:
             skipped += 1
             continue
         rows.append({
             "synthetic_profile_id": profile_id,
-            "content_type":         row.get("content_type", "").strip().lower(),
-            "content":              row.get("content", "").strip(),
+            "content_type":         row.get("content-type", "").strip(),
+            "content":              row.get("text", "").strip(),
         })
 
     pano_path = os.path.join(output_dir, "panorama.json")

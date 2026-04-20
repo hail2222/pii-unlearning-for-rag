@@ -335,8 +335,8 @@ def experiment_3_cross_type(probe: ModelProbe, results_dir: str, max_samples: in
     print("  Test:  review + marketplace + comment")
     print(f"{'='*60}")
 
-    TRAIN_TYPES = {"wiki", "forum"}
-    TEST_TYPES  = {"review", "marketplace", "comment"}
+    TRAIN_TYPES = {"Article", "Forum Post"}
+    TEST_TYPES  = {"Online Review", "Online Ad", "Blog/News Article Comment"}
 
     def _load_or_extract(types, tag):
         pkl_path = os.path.join(results_dir, f"exp3_{tag}.pkl")

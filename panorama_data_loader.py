@@ -45,8 +45,15 @@ PII_FIELDS = [
     ("Disability",             "disability",       "What disability or medical condition is mentioned in this text?"),
 ]
 
-# Content types to use (all 6)
-ALL_CONTENT_TYPES = {"wiki", "social", "forum", "review", "comment", "marketplace"}
+# Actual content-type values from HuggingFace dataset
+ALL_CONTENT_TYPES = {
+    "Article",
+    "Social Media",
+    "Forum Post",
+    "Online Review",
+    "Blog/News Article Comment",
+    "Online Ad",
+}
 
 
 # ── Matching helpers ───────────────────────────────────────────────────────────
