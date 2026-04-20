@@ -2,11 +2,16 @@ import os
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "../Toward-Practical-PII-Unlearning/data")
+DATA_DIR = os.path.join(BASE_DIR, "../data")
 
-PROFILES_PATH    = os.path.join(DATA_DIR, "PII/full_user_profiles.json")
-WORLD_FACTS_PATH = os.path.join(DATA_DIR, "test/world_facts_perturbed.json")
+# UnlearnPII
+PROFILES_PATH    = os.path.join(DATA_DIR, "unlearnpii/full_user_profiles.json")
+WORLD_FACTS_PATH = os.path.join(DATA_DIR, "unlearnpii/world_facts_perturbed.json")
 RESULTS_DIR      = os.path.join(BASE_DIR, "results")
+
+# PANORAMA — run prepare_panorama.py once on the server to generate these
+PANORAMA_PATH      = os.path.join(DATA_DIR, "panorama/panorama.json")
+PANORAMA_PLUS_PATH = os.path.join(DATA_DIR, "panorama/panorama_plus.json")
 
 # ── Model ──────────────────────────────────────────────────────────────────────
 # Local debug: "Qwen/Qwen2.5-0.5B-Instruct"
