@@ -305,10 +305,15 @@ def experiment_1_zero_shot(probe: ModelProbe, results_dir: str, max_samples: int
 def experiment_2_panorama(probe: ModelProbe, results_dir: str, max_samples: int):
     """
     Exp2: Train on PANORAMA (train split), test on PANORAMA (test split).
-    Also reports per content_type breakdown.
+    Uses stratified 80/20 split: each content_type is split independently,
+    then train splits and test splits are merged across types.
+    This prevents any content_type from being over-represented in train or test.
     """
+    import random
+    random.seed(42)
+
     print(f"\n{'='*60}")
-    print("Experiment 2: PANORAMA-only (train + test on PANORAMA)")
+    print("Experiment 2: PANORAMA-only (stratified train + test on PANORAMA)")
     print(f"{'='*60}")
 
     # Load all PANORAMA samples split by content_type
@@ -323,7 +328,8 @@ def experiment_2_panorama(probe: ModelProbe, results_dir: str, max_samples: int)
             print(f"  [{content_type}] No samples, skipping")
             continue
 
-        pkl_path = os.path.join(results_dir, f"exp2_{content_type}.pkl")
+        safe_name = content_type.replace("/", "_").replace(" ", "_")
+        pkl_path = os.path.join(results_dir, f"exp2_{safe_name}.pkl")
         if os.path.exists(pkl_path):
             print(f"  [{content_type}] Loading cache...")
             with open(pkl_path, "rb") as f:
@@ -337,23 +343,34 @@ def experiment_2_panorama(probe: ModelProbe, results_dir: str, max_samples: int)
                 os.remove(ckpt)
             all_results_by_type[content_type] = results
 
-    # Per content_type evaluation (80/20 split within each type)
+    # Stratified split: shuffle within each type, then 80/20
+    # → each type contributes proportionally to train and test
     all_metrics = {}
+    train_combined, test_combined = [], []
+
     for content_type, results in all_results_by_type.items():
         if len(results) < 10:
             print(f"  [{content_type}] Too few samples ({len(results)}), skipping")
             continue
 
-        split = int(len(results) * 0.8)
-        train_r, test_r = results[:split], results[split:]
+        shuffled = results[:]
+        random.shuffle(shuffled)
+        split = int(len(shuffled) * 0.8)
+        train_r, test_r = shuffled[:split], shuffled[split:]
+
+        train_combined.extend(train_r)
+        test_combined.extend(test_r)
+
+        # Per-type evaluation
         metrics = evaluate_classifier(train_r, test_r, f"Exp2 {content_type}")
+        metrics["n_total"] = len(results)
         all_metrics[content_type] = metrics
 
-    # Combined evaluation (train on all types, test on all types)
-    all_results = [r for rs in all_results_by_type.values() for r in rs]
-    split = int(len(all_results) * 0.8)
-    train_all, test_all = all_results[:split], all_results[split:]
-    all_metrics["combined"] = evaluate_classifier(train_all, test_all, "Exp2 Combined")
+    # Combined evaluation: all types mixed, stratified proportions preserved
+    print(f"\n  Combined: {len(train_combined)} train / {len(test_combined)} test")
+    random.shuffle(train_combined)
+    random.shuffle(test_combined)
+    all_metrics["combined"] = evaluate_classifier(train_combined, test_combined, "Exp2 Combined")
 
     out_path = os.path.join(results_dir, "exp2_metrics.json")
     with open(out_path, "w") as f:
