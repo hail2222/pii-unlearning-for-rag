@@ -1,0 +1,80 @@
+{
+  "exp2": {
+    "Social Media": {
+      "cnn_f1": 0.7226890756302521,
+      "cnn_precision": 0.6099290780141844,
+      "cnn_recall": 0.8865979381443299,
+      "lr_f1": 0.8421052631578947,
+      "lr_precision": 0.8602150537634409,
+      "lr_recall": 0.8247422680412371,
+      "n_train": 800,
+      "n_test": 200,
+      "n_total": 1000
+    },
+    "Forum Post": {
+      "cnn_f1": 0.9025069637883009,
+      "cnn_precision": 0.8307692307692308,
+      "cnn_recall": 0.9878048780487805,
+      "lr_f1": 0.9464285714285714,
+      "lr_precision": 0.9244186046511628,
+      "lr_recall": 0.9695121951219512,
+      "n_train": 800,
+      "n_test": 200,
+      "n_total": 1000
+    },
+    "Online Ad": {
+      "cnn_f1": 0.9924433249370277,
+      "cnn_precision": 0.985,
+      "cnn_recall": 1.0,
+      "lr_f1": 0.9949494949494949,
+      "lr_precision": 0.9899497487437185,
+      "lr_recall": 1.0,
+      "n_train": 800,
+      "n_test": 200,
+      "n_total": 1000
+    },
+    "Blog/News Article Comment": {
+      "cnn_f1": 0.2318840579710145,
+      "cnn_precision": 1.0,
+      "cnn_recall": 0.13114754098360656,
+      "lr_f1": 0.8507462686567164,
+      "lr_precision": 0.7808219178082192,
+      "lr_recall": 0.9344262295081968,
+      "n_train": 800,
+      "n_test": 200,
+      "n_total": 1000
+    },
+    "Online Review": {
+      "cnn_f1": 0.0,
+      "cnn_precision": 0.0,
+      "cnn_recall": 0.0,
+      "lr_f1": 0.7899159663865546,
+      "lr_precision": 0.7833333333333333,
+      "lr_recall": 0.7966101694915254,
+      "n_train": 800,
+      "n_test": 200,
+      "n_total": 1000
+    },
+    "Article": {
+      "cnn_f1": 0.0,
+      "cnn_precision": 0.0,
+      "cnn_recall": 0.0,
+      "lr_f1": 0.7012987012987013,
+      "lr_precision": 0.7714285714285715,
+      "lr_recall": 0.6428571428571429,
+      "n_train": 800,
+      "n_test": 200,
+      "n_total": 1000
+    },
+    "combined": {
+      "cnn_f1": 0.7382732834806254,
+      "cnn_precision": 0.6380728554641598,
+      "cnn_recall": 0.8758064516129033,
+      "lr_f1": 0.9115537848605577,
+      "lr_precision": 0.9007874015748032,
+      "lr_recall": 0.9225806451612903,
+      "n_train": 4800,
+      "n_test": 1200
+    }
+  }
+}
