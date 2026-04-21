@@ -54,12 +54,14 @@ def parse_args():
     p.add_argument("--batch-size",  type=int,   default=32)
     p.add_argument("--device",      type=str,   default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--fallback",    type=str,   choices=["keep", "drop"], default="keep")
+    p.add_argument("--max-samples", type=int,   default=None,
+                   help="Limit total samples loaded (for quick testing)")
     return p.parse_args()
 
 
 # ── Data utils ────────────────────────────────────────────────────────────────
 
-def load_panorama_results(results_dir: str) -> list:
+def load_panorama_results(results_dir: str, max_samples: int = None) -> list:
     """Load all exp2_*.pkl files and return combined list of SampleResult."""
     all_results = []
     for ct in ALL_CONTENT_TYPES:
@@ -72,6 +74,10 @@ def load_panorama_results(results_dir: str) -> list:
         all_results.extend(results)
         pos = sum(1 for r in results if r.pii_token_positions)
         print(f"  [{ct:35s}] {len(results):4d} samples  (pos={pos}, neg={len(results)-pos})")
+        if max_samples and len(all_results) >= max_samples:
+            break
+    if max_samples:
+        all_results = all_results[:max_samples]
     return all_results
 
 
@@ -277,9 +283,13 @@ def main():
     print(f"  Device      : {args.device}")
     print("=" * 62)
 
+    import json
+    ckpt_dir = os.path.join(args.results_dir, "pipeline_ckpt")
+    os.makedirs(ckpt_dir, exist_ok=True)
+
     # Load all PANORAMA results
     print("\nLoading PANORAMA results...")
-    all_results = load_panorama_results(args.results_dir)
+    all_results = load_panorama_results(args.results_dir, args.max_samples)
 
     pos_total = sum(1 for r in all_results if r.pii_token_positions)
     neg_total = len(all_results) - pos_total
@@ -292,24 +302,49 @@ def main():
     print(f"Train: {len(train)} (pos={pos_train}, neg={len(train)-pos_train})")
     print(f"Test : {len(test)}  (pos={pos_test},  neg={len(test)-pos_test})")
 
-    # ── Train CNN ─────────────────────────────────────────────────────────────
+    # ── Stage 1: Train CNN ────────────────────────────────────────────────────
     print("\n" + "=" * 62)
     print("  Stage 1: Training TwoChannelCNN")
     print("=" * 62)
+
+    cnn_ckpt   = os.path.join(ckpt_dir, "cnn.pt")
+    preds_ckpt = os.path.join(ckpt_dir, "cnn_preds.pkl")
+
     train_ds = TwoChannelDataset(train)
     test_ds  = TwoChannelDataset(test)
+    model    = TwoChannelCNN().to(args.device)
 
-    model = TwoChannelCNN().to(args.device)
-    print(f"  Params: {sum(p.numel() for p in model.parameters()):,}")
-    model = train_cnn(model, train_ds, args.epochs, args.batch_size, args.device)
+    if os.path.exists(cnn_ckpt) and os.path.exists(preds_ckpt):
+        print(f"  Resuming: loading CNN from {cnn_ckpt}")
+        model.load_state_dict(torch.load(cnn_ckpt, map_location=args.device))
+        with open(preds_ckpt, "rb") as f:
+            cnn_preds = pickle.load(f)
+    else:
+        print(f"  Params: {sum(p.numel() for p in model.parameters()):,}")
+        model = train_cnn(model, train_ds, args.epochs, args.batch_size, args.device)
+        torch.save(model.state_dict(), cnn_ckpt)
+        print(f"  CNN saved → {cnn_ckpt}")
+        cnn_preds, _ = predict_cnn(model, test_ds, args.device)
+        with open(preds_ckpt, "wb") as f:
+            pickle.dump(cnn_preds, f)
+        print(f"  CNN preds saved → {preds_ckpt}")
 
-    cnn_preds, y_true = predict_cnn(model, test_ds, args.device)
-
-    # ── Train Probe ───────────────────────────────────────────────────────────
+    # ── Stage 2: Train Probe ──────────────────────────────────────────────────
     print("\n" + "=" * 62)
     print("  Stage 2: Training Linear Probe on red_flag_hidden_states")
     print("=" * 62)
-    probe = build_probe(train)
+
+    probe_ckpt = os.path.join(ckpt_dir, "probe.pkl")
+    if os.path.exists(probe_ckpt):
+        print(f"  Resuming: loading probe from {probe_ckpt}")
+        with open(probe_ckpt, "rb") as f:
+            probe = pickle.load(f)
+    else:
+        probe = build_probe(train)
+        if probe is not None:
+            with open(probe_ckpt, "wb") as f:
+                pickle.dump(probe, f)
+            print(f"  Probe saved → {probe_ckpt}")
 
     # ── Evaluate Pipeline ─────────────────────────────────────────────────────
     print("\n" + "=" * 62)
@@ -318,7 +353,6 @@ def main():
     metrics = evaluate_pipeline(test, cnn_preds, probe, args.fallback, "Combined")
 
     # ── Save results ──────────────────────────────────────────────────────────
-    import json
     out_path = os.path.join(args.results_dir, "pipeline_metrics.json")
     with open(out_path, "w") as f:
         json.dump(metrics, f, indent=2)
