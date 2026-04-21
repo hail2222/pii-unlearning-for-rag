@@ -192,17 +192,27 @@ def evaluate_classifier(train_results: list[SampleResult],
 
     metrics = {}
 
-    # ── 1. CNN on entropy sequences ───────────────────────────────────────────
+    # ── 1. CNN on entropy sequences (1-channel) ───────────────────────────────
     try:
-        sys.path.insert(0, os.path.dirname(__file__))
-        from hyperparam_tuning_v2 import TwoChannelCNN
+        class _EntropyCNN(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.net = nn.Sequential(
+                    nn.Conv1d(1, 64,  kernel_size=7, padding=3), nn.ReLU(),
+                    nn.Conv1d(64, 128, kernel_size=5, padding=2), nn.ReLU(),
+                    nn.Conv1d(128, 256, kernel_size=3, padding=1), nn.ReLU(),
+                    nn.AdaptiveAvgPool1d(1),
+                )
+                self.fc = nn.Linear(256, 1)
+                self.drop = nn.Dropout(0.3)
 
-        # Use best config from previous experiments
-        cnn = TwoChannelCNN(channels=(64, 128, 256), kernels=(7, 5, 3), dropout=0.3)
+            def forward(self, x):
+                return self.fc(self.drop(self.net(x).squeeze(-1)))
+
+        cnn = _EntropyCNN()
         optimizer = torch.optim.Adam(cnn.parameters(), lr=1e-3)
         criterion = nn.BCEWithLogitsLoss()
 
-        # Simple train loop (no CV, for speed)
         X_t = torch.tensor(X_train).unsqueeze(1)   # (N, 1, seq_len)
         y_t = torch.tensor(y_train, dtype=torch.float32)
 
@@ -486,8 +496,11 @@ def main():
     if "exp2" in all_metrics and all_metrics["exp2"]:
         print(f"\nExp2 (PANORAMA-only, per content_type):")
         for ct, m in all_metrics["exp2"].items():
-            f1 = m.get("cnn_f1")
-            print(f"  {ct:15s}: CNN F1={f1:.4f}" if f1 is not None else f"  {ct:15s}: N/A")
+            cnn_f1 = m.get("cnn_f1")
+            lr_f1  = m.get("lr_f1")
+            cnn_str = f"CNN={cnn_f1:.4f}" if cnn_f1 is not None else "CNN=N/A"
+            lr_str  = f"LR={lr_f1:.4f}"  if lr_f1  is not None else "LR=N/A"
+            print(f"  {ct:35s}: {cnn_str}  {lr_str}")
 
     if "exp3" in all_metrics and all_metrics["exp3"]:
         m = all_metrics["exp3"]
