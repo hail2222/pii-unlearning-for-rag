@@ -382,6 +382,27 @@ def experiment_2_panorama(probe: ModelProbe, results_dir: str, max_samples: int)
     random.shuffle(test_combined)
     all_metrics["combined"] = evaluate_classifier(train_combined, test_combined, "Exp2 Combined")
 
+    # Combined model → per-type test breakdown
+    # Train once on all types, then test on each type separately
+    print(f"\n{'='*60}")
+    print("Exp2 Combined model → per-type test breakdown")
+    print(f"{'='*60}")
+    test_by_type = {}
+    for content_type, results in all_results_by_type.items():
+        shuffled = results[:]
+        random.shuffle(shuffled)
+        split = int(len(shuffled) * 0.8)
+        test_by_type[content_type] = shuffled[split:]  # same split as above
+
+    combined_per_type_metrics = {}
+    for content_type, test_r in test_by_type.items():
+        if len(test_r) < 5:
+            continue
+        metrics = evaluate_classifier(train_combined, test_r, f"Exp2 Combined→{content_type}")
+        combined_per_type_metrics[content_type] = metrics
+
+    all_metrics["combined_per_type"] = combined_per_type_metrics
+
     out_path = os.path.join(results_dir, "exp2_metrics.json")
     with open(out_path, "w") as f:
         json.dump(all_metrics, f, indent=2)
@@ -494,13 +515,30 @@ def main():
         print(f"  LR   F1={m.get('lr_f1', 'N/A'):.4f}"  if m.get('lr_f1')  else "  LR   F1=N/A")
 
     if "exp2" in all_metrics and all_metrics["exp2"]:
-        print(f"\nExp2 (PANORAMA-only, per content_type):")
+        print(f"\nExp2 (per-type train → per-type test):")
         for ct, m in all_metrics["exp2"].items():
+            if ct in ("combined", "combined_per_type"):
+                continue
             cnn_f1 = m.get("cnn_f1")
             lr_f1  = m.get("lr_f1")
             cnn_str = f"CNN={cnn_f1:.4f}" if cnn_f1 is not None else "CNN=N/A"
             lr_str  = f"LR={lr_f1:.4f}"  if lr_f1  is not None else "LR=N/A"
             print(f"  {ct:35s}: {cnn_str}  {lr_str}")
+
+        m = all_metrics["exp2"].get("combined", {})
+        cnn_f1, lr_f1 = m.get("cnn_f1"), m.get("lr_f1")
+        print(f"\nExp2 (combined train → combined test):")
+        print(f"  {'combined':35s}: CNN={cnn_f1:.4f}  LR={lr_f1:.4f}")
+
+        cpt = all_metrics["exp2"].get("combined_per_type", {})
+        if cpt:
+            print(f"\nExp2 (combined train → per-type test):")
+            for ct, m in cpt.items():
+                cnn_f1 = m.get("cnn_f1")
+                lr_f1  = m.get("lr_f1")
+                cnn_str = f"CNN={cnn_f1:.4f}" if cnn_f1 is not None else "CNN=N/A"
+                lr_str  = f"LR={lr_f1:.4f}"  if lr_f1  is not None else "LR=N/A"
+                print(f"  {ct:35s}: {cnn_str}  {lr_str}")
 
     if "exp3" in all_metrics and all_metrics["exp3"]:
         m = all_metrics["exp3"]
