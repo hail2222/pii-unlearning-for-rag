@@ -265,7 +265,9 @@ def evaluate_classifier(train_results: list[SampleResult],
 def experiment_1_zero_shot(probe: ModelProbe, results_dir: str, max_samples: int):
     """
     Exp1: Train on UnlearnPII results (already computed), test on PANORAMA.
-    Uses existing pkl files from results_llama8b_20260401_1429/.
+    Reports:
+      (a) Combined: UnlearnPII → all PANORAMA types mixed
+      (b) Per-type: UnlearnPII → each PANORAMA content type separately
     """
     print(f"\n{'='*60}")
     print("Experiment 1: Zero-shot Transfer (UnlearnPII → PANORAMA)")
@@ -284,32 +286,65 @@ def experiment_1_zero_shot(probe: ModelProbe, results_dir: str, max_samples: int
         train_results = pickle.load(f)
     print(f"  UnlearnPII train set: {len(train_results)} samples")
 
-    # Generate PANORAMA test results
-    pano_pkl = os.path.join(results_dir, "exp1_panorama_test.pkl")
-    if os.path.exists(pano_pkl):
-        print(f"  Loading cached PANORAMA results from {pano_pkl}")
-        with open(pano_pkl, "rb") as f:
-            test_results = pickle.load(f)
-    else:
-        panorama_samples = load_panorama_samples(
-            PANORAMA_PATH, PANORAMA_PLUS_PATH,
-            max_samples=max_samples,
-        )
-        print(f"  PANORAMA test set: {len(panorama_samples)} samples")
-        ckpt = pano_pkl.replace(".pkl", "_ckpt.pkl")
-        test_results = extract_features(probe, panorama_samples,
-                                        desc="Exp1 PANORAMA", checkpoint_path=ckpt)
-        save_results(test_results, pano_pkl)
-        if os.path.exists(ckpt):
-            os.remove(ckpt)
+    # Load PANORAMA test results per content type
+    from panorama_data_loader import ALL_CONTENT_TYPES
+    all_metrics = {}
+    test_results_all = []
+    test_by_type = {}
 
-    metrics = evaluate_classifier(train_results, test_results, "Exp1 Zero-shot")
+    for content_type in ALL_CONTENT_TYPES:
+        safe_name = content_type.replace("/", "_").replace(" ", "_")
+        # Reuse Exp2 pkl if available, otherwise generate fresh
+        pano_pkl = os.path.join(results_dir, f"exp2_{safe_name}.pkl")
+        exp1_pkl = os.path.join(results_dir, f"exp1_{safe_name}.pkl")
+
+        if os.path.exists(pano_pkl):
+            with open(pano_pkl, "rb") as f:
+                type_results = pickle.load(f)
+            print(f"  [{content_type}] Reusing exp2 cache ({len(type_results)} samples)")
+        elif os.path.exists(exp1_pkl):
+            with open(exp1_pkl, "rb") as f:
+                type_results = pickle.load(f)
+            print(f"  [{content_type}] Loading exp1 cache ({len(type_results)} samples)")
+        else:
+            samples = load_panorama_samples(
+                PANORAMA_PATH, PANORAMA_PLUS_PATH,
+                content_types={content_type},
+                max_samples=max_samples,
+            )
+            print(f"  [{content_type}] Generating {len(samples)} samples...")
+            ckpt = exp1_pkl.replace(".pkl", "_ckpt.pkl")
+            type_results = extract_features(probe, samples,
+                                            desc=f"Exp1 {content_type}",
+                                            checkpoint_path=ckpt)
+            save_results(type_results, exp1_pkl)
+            if os.path.exists(ckpt):
+                os.remove(ckpt)
+
+        test_by_type[content_type] = type_results
+        test_results_all.extend(type_results)
+
+    # (a) Combined: UnlearnPII → all PANORAMA
+    print(f"\n  Combined test: {len(test_results_all)} samples")
+    all_metrics["combined"] = evaluate_classifier(
+        train_results, test_results_all, "Exp1 Combined")
+
+    # (b) Per-type: UnlearnPII → each content type
+    print(f"\n{'='*60}")
+    print("Exp1 UnlearnPII train → per-type PANORAMA test")
+    print(f"{'='*60}")
+    for content_type, type_results in test_by_type.items():
+        if not type_results:
+            continue
+        m = evaluate_classifier(train_results, type_results,
+                                f"Exp1→{content_type}")
+        all_metrics[content_type] = m
 
     out_path = os.path.join(results_dir, "exp1_metrics.json")
     with open(out_path, "w") as f:
-        json.dump(metrics, f, indent=2)
+        json.dump(all_metrics, f, indent=2)
     print(f"  Metrics saved → {out_path}")
-    return metrics
+    return all_metrics
 
 
 def experiment_2_panorama(probe: ModelProbe, results_dir: str, max_samples: int):
@@ -509,10 +544,21 @@ def main():
     print(f"{'='*60}")
 
     if "exp1" in all_metrics and all_metrics["exp1"]:
-        m = all_metrics["exp1"]
-        print(f"\nExp1 (Zero-shot, UnlearnPII→PANORAMA):")
-        print(f"  CNN  F1={m.get('cnn_f1', 'N/A'):.4f}" if m.get('cnn_f1') else "  CNN  F1=N/A")
-        print(f"  LR   F1={m.get('lr_f1', 'N/A'):.4f}"  if m.get('lr_f1')  else "  LR   F1=N/A")
+        print(f"\nExp1 (UnlearnPII train → combined PANORAMA test):")
+        m = all_metrics["exp1"].get("combined", {})
+        cnn_f1, lr_f1 = m.get("cnn_f1"), m.get("lr_f1")
+        cnn_str = f"CNN={cnn_f1:.4f}" if cnn_f1 is not None else "CNN=N/A"
+        lr_str  = f"LR={lr_f1:.4f}"  if lr_f1  is not None else "LR=N/A"
+        print(f"  {'combined':35s}: {cnn_str}  {lr_str}")
+
+        print(f"\nExp1 (UnlearnPII train → per-type PANORAMA test):")
+        for ct, m in all_metrics["exp1"].items():
+            if ct == "combined":
+                continue
+            cnn_f1, lr_f1 = m.get("cnn_f1"), m.get("lr_f1")
+            cnn_str = f"CNN={cnn_f1:.4f}" if cnn_f1 is not None else "CNN=N/A"
+            lr_str  = f"LR={lr_f1:.4f}"  if lr_f1  is not None else "LR=N/A"
+            print(f"  {ct:35s}: {cnn_str}  {lr_str}")
 
     if "exp2" in all_metrics and all_metrics["exp2"]:
         print(f"\nExp2 (per-type train → per-type test):")
