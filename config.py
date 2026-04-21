@@ -2,7 +2,7 @@ import os
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "../data")
+DATA_DIR = os.path.join(BASE_DIR, "data")
 
 # UnlearnPII
 PROFILES_PATH    = os.path.join(DATA_DIR, "unlearnpii/full_user_profiles.json")
