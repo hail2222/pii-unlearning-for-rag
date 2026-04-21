@@ -68,21 +68,7 @@ def parse_args():
 
 # ── Feature extraction ────────────────────────────────────────────────────────
 
-def extract_features(probe: ModelProbe, samples: list, desc: str = "") -> list[SampleResult]:
-    """Run LLaMA inference on samples, extract entropy + hidden states."""
-    results = []
-    for sample in tqdm(samples, desc=desc):
-        try:
-            r = run_single(
-                probe, sample,
-                threshold=ENTROPY_DROP_THRESHOLD,
-                zscore=ENTROPY_DROP_ZSCORE,
-                save_all_hidden=True,   # need all hidden states for Linear Probe
-            )
-            results.append(r)
-        except Exception as e:
-            print(f"  [ERROR] {getattr(sample, 'subject', '?')}: {e}")
-    return results
+CHECKPOINT_INTERVAL = 50  # save checkpoint every N samples
 
 
 def save_results(results: list, path: str):
@@ -101,6 +87,50 @@ def save_results(results: list, path: str):
     with open(json_path, "w") as f:
         json.dump(summary, f, indent=2)
     print(f"  Saved → {path}")
+
+
+def extract_features(probe: ModelProbe, samples: list, desc: str = "",
+                     checkpoint_path: str = None) -> list[SampleResult]:
+    """
+    Run LLaMA inference on samples, extract entropy + hidden states.
+    Saves checkpoint every CHECKPOINT_INTERVAL samples so interrupted runs
+    can be resumed by passing the same checkpoint_path again.
+    """
+    results = []
+    start_idx = 0
+
+    # Resume from checkpoint if exists
+    if checkpoint_path and os.path.exists(checkpoint_path):
+        with open(checkpoint_path, "rb") as f:
+            results = pickle.load(f)
+        start_idx = len(results)
+        print(f"  Resuming from checkpoint: {start_idx}/{len(samples)} done")
+
+    remaining = samples[start_idx:]
+    for i, sample in enumerate(tqdm(remaining, desc=desc,
+                                    initial=start_idx, total=len(samples))):
+        try:
+            r = run_single(
+                probe, sample,
+                threshold=ENTROPY_DROP_THRESHOLD,
+                zscore=ENTROPY_DROP_ZSCORE,
+                save_all_hidden=True,
+            )
+            results.append(r)
+        except Exception as e:
+            print(f"  [ERROR] {getattr(sample, 'subject', '?')}: {e}")
+
+        # Save checkpoint every N samples
+        if checkpoint_path and (i + 1) % CHECKPOINT_INTERVAL == 0:
+            with open(checkpoint_path, "wb") as f:
+                pickle.dump(results, f)
+
+    # Final checkpoint save
+    if checkpoint_path:
+        with open(checkpoint_path, "wb") as f:
+            pickle.dump(results, f)
+
+    return results
 
 
 # ── Classifier evaluation ─────────────────────────────────────────────────────
@@ -256,8 +286,12 @@ def experiment_1_zero_shot(probe: ModelProbe, results_dir: str, max_samples: int
             max_samples=max_samples,
         )
         print(f"  PANORAMA test set: {len(panorama_samples)} samples")
-        test_results = extract_features(probe, panorama_samples, desc="Exp1 PANORAMA")
+        ckpt = pano_pkl.replace(".pkl", "_ckpt.pkl")
+        test_results = extract_features(probe, panorama_samples,
+                                        desc="Exp1 PANORAMA", checkpoint_path=ckpt)
         save_results(test_results, pano_pkl)
+        if os.path.exists(ckpt):
+            os.remove(ckpt)
 
     metrics = evaluate_classifier(train_results, test_results, "Exp1 Zero-shot")
 
@@ -295,8 +329,12 @@ def experiment_2_panorama(probe: ModelProbe, results_dir: str, max_samples: int)
             with open(pkl_path, "rb") as f:
                 all_results_by_type[content_type] = pickle.load(f)
         else:
-            results = extract_features(probe, samples, desc=f"Exp2 {content_type}")
+            ckpt = pkl_path.replace(".pkl", "_ckpt.pkl")
+            results = extract_features(probe, samples, desc=f"Exp2 {content_type}",
+                                       checkpoint_path=ckpt)
             save_results(results, pkl_path)
+            if os.path.exists(ckpt):
+                os.remove(ckpt)
             all_results_by_type[content_type] = results
 
     # Per content_type evaluation (80/20 split within each type)
@@ -350,8 +388,12 @@ def experiment_3_cross_type(probe: ModelProbe, results_dir: str, max_samples: in
             max_samples=max_samples,
         )
         print(f"  {tag}: {len(samples)} samples")
-        results = extract_features(probe, samples, desc=f"Exp3 {tag}")
+        ckpt = pkl_path.replace(".pkl", "_ckpt.pkl")
+        results = extract_features(probe, samples, desc=f"Exp3 {tag}",
+                                   checkpoint_path=ckpt)
         save_results(results, pkl_path)
+        if os.path.exists(ckpt):
+            os.remove(ckpt)
         return results
 
     train_results = _load_or_extract(TRAIN_TYPES, "train_wiki_forum")
