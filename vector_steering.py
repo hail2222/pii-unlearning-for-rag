@@ -125,16 +125,22 @@ def generate_with_steering(
     def steering_hook(module, input, output):
         if not active["on"]:
             return output
-        # output[0]: (batch, seq_len, hidden_size) or (seq_len, hidden_size)
-        raw = output[0]
-        hidden = raw.clone()
-        if hidden.dim() == 3:
-            hidden[:, -1, :] = hidden[:, -1, :] + alpha * sv
-        elif hidden.dim() == 2:
-            hidden[-1, :] = hidden[-1, :] + alpha * sv
+        # output may be a tensor directly or a tuple whose first element is the hidden states
+        if isinstance(output, torch.Tensor):
+            hidden = output.clone()
+            if hidden.dim() == 3:
+                hidden[:, -1, :] = hidden[:, -1, :] + alpha * sv
+            elif hidden.dim() == 2:
+                hidden[-1, :] = hidden[-1, :] + alpha * sv
+            return hidden
         else:
-            hidden[..., -1, :] = hidden[..., -1, :] + alpha * sv
-        return (hidden,) + output[1:]
+            raw = output[0]
+            hidden = raw.clone()
+            if hidden.dim() == 3:
+                hidden[:, -1, :] = hidden[:, -1, :] + alpha * sv
+            elif hidden.dim() == 2:
+                hidden[-1, :] = hidden[-1, :] + alpha * sv
+            return (hidden,) + output[1:]
 
     layer = probe.model.model.layers[probe.probe_layer]
     hook_handle = layer.register_forward_hook(steering_hook)
