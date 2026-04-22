@@ -1,0 +1,142 @@
+{
+  "exp2": {
+    "Online Ad": {
+      "cnn_f1": 0.9830508474576272,
+      "cnn_precision": 0.9666666666666667,
+      "cnn_recall": 1.0,
+      "lr_f1": 0.9987261146496815,
+      "lr_precision": 0.9974554707379135,
+      "lr_recall": 1.0,
+      "n_train": 2400,
+      "n_test": 600,
+      "n_total": 3000
+    },
+    "Forum Post": {
+      "cnn_f1": 0.8785046728971962,
+      "cnn_precision": 0.7833333333333333,
+      "cnn_recall": 1.0,
+      "lr_f1": 0.9789983844911146,
+      "lr_precision": 0.9742765273311897,
+      "lr_recall": 0.9837662337662337,
+      "n_train": 2400,
+      "n_test": 600,
+      "n_total": 3000
+    },
+    "Blog/News Article Comment": {
+      "cnn_f1": 0.0,
+      "cnn_precision": 0.0,
+      "cnn_recall": 0.0,
+      "lr_f1": 0.851063829787234,
+      "lr_precision": 0.8695652173913043,
+      "lr_recall": 0.8333333333333334,
+      "n_train": 1960,
+      "n_test": 491,
+      "n_total": 2451
+    },
+    "Article": {
+      "cnn_f1": 0.0,
+      "cnn_precision": 0.0,
+      "cnn_recall": 0.0,
+      "lr_f1": 0.6842105263157895,
+      "lr_precision": 0.8666666666666667,
+      "lr_recall": 0.5652173913043478,
+      "n_train": 1627,
+      "n_test": 407,
+      "n_total": 2034
+    },
+    "Online Review": {
+      "cnn_f1": 0.0,
+      "cnn_precision": 0.0,
+      "cnn_recall": 0.0,
+      "lr_f1": 0.8148148148148148,
+      "lr_precision": 0.9166666666666666,
+      "lr_recall": 0.7333333333333333,
+      "n_train": 1707,
+      "n_test": 427,
+      "n_total": 2134
+    },
+    "Social Media": {
+      "cnn_f1": 0.6994535519125683,
+      "cnn_precision": 0.6,
+      "cnn_recall": 0.8384279475982532,
+      "lr_f1": 0.8803827751196173,
+      "lr_precision": 0.92,
+      "lr_recall": 0.8440366972477065,
+      "n_train": 2000,
+      "n_test": 500,
+      "n_total": 2500
+    },
+    "combined": {
+      "cnn_f1": 0.7652173913043478,
+      "cnn_precision": 0.6741775574583145,
+      "cnn_recall": 0.8846836191602602,
+      "lr_f1": 0.9524861878453039,
+      "lr_precision": 0.9567147613762487,
+      "lr_recall": 0.9482948294829483,
+      "n_train": 12094,
+      "n_test": 3025
+    },
+    "combined_per_type": {
+      "Online Ad": {
+        "cnn_f1": 0.9761092150170648,
+        "cnn_precision": 0.9533333333333334,
+        "cnn_recall": 1.0,
+        "lr_f1": 0.9922480620155039,
+        "lr_precision": 0.9846153846153847,
+        "lr_recall": 1.0,
+        "n_train": 12094,
+        "n_test": 600
+      },
+      "Forum Post": {
+        "cnn_f1": 0.8744939271255061,
+        "cnn_precision": 0.8291746641074856,
+        "cnn_recall": 0.9250535331905781,
+        "lr_f1": 0.9965635738831615,
+        "lr_precision": 0.9931506849315068,
+        "lr_recall": 1.0,
+        "n_train": 12094,
+        "n_test": 600
+      },
+      "Blog/News Article Comment": {
+        "cnn_f1": 0.6666666666666666,
+        "cnn_precision": 0.5163636363636364,
+        "cnn_recall": 0.9403973509933775,
+        "lr_f1": 1.0,
+        "lr_precision": 1.0,
+        "lr_recall": 1.0,
+        "n_train": 12094,
+        "n_test": 491
+      },
+      "Article": {
+        "cnn_f1": 0.2231404958677686,
+        "cnn_precision": 0.17880794701986755,
+        "cnn_recall": 0.2967032967032967,
+        "lr_f1": 0.918918918918919,
+        "lr_precision": 0.918918918918919,
+        "lr_recall": 0.918918918918919,
+        "n_train": 12094,
+        "n_test": 407
+      },
+      "Online Review": {
+        "cnn_f1": 0.42823529411764705,
+        "cnn_precision": 0.3116438356164384,
+        "cnn_recall": 0.6842105263157895,
+        "lr_f1": 0.9090909090909091,
+        "lr_precision": 0.9259259259259259,
+        "lr_recall": 0.8928571428571429,
+        "n_train": 12094,
+        "n_test": 427
+      },
+      "Social Media": {
+        "cnn_f1": 0.7228915662650602,
+        "cnn_precision": 0.6122448979591837,
+        "cnn_recall": 0.8823529411764706,
+        "lr_f1": 0.9514563106796117,
+        "lr_precision": 0.9607843137254902,
+        "lr_recall": 0.9423076923076923,
+        "n_train": 12094,
+        "n_test": 500
+      }
+    }
+  }
+}
