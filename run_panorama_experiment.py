@@ -156,13 +156,10 @@ def build_xy_from_results(results: list[SampleResult]):
             ent = ent + [0.0] * (max_len - len(ent))
         X_entropy.append(ent)
 
-        # Hidden state: try all_hidden_states first, then red_flag_hidden_states
-        all_hs  = getattr(r, 'all_hidden_states',   [])
+        # Hidden state: use mean of red_flag_hidden_states (consistent across all pkl formats)
+        # These are hidden states at entropy drop moments — directly tied to PII generation
         rflag_hs = getattr(r, 'red_flag_hidden_states', [])
-        if all_hs:
-            X_hidden.append(np.array(all_hs[0], dtype=np.float32))
-        elif rflag_hs:
-            # Use mean of red-flag hidden states as sample-level feature
+        if rflag_hs:
             X_hidden.append(np.mean(np.stack(rflag_hs), axis=0).astype(np.float32))
         else:
             X_hidden.append(None)
