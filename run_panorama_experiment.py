@@ -171,10 +171,17 @@ def build_xy_from_results(results: list[SampleResult]):
 
     X_entropy = np.array(X_entropy, dtype=np.float32)
     y         = np.array(y,         dtype=np.int32)
-    X_hidden  = np.array([h for h in X_hidden if h is not None], dtype=np.float32) \
-                if any(h is not None for h in X_hidden) else None
 
-    return X_entropy, X_hidden, y
+    # Filter hidden states and corresponding labels together
+    has_hidden = [h is not None for h in X_hidden]
+    if any(has_hidden):
+        X_hidden_arr = np.array([h for h in X_hidden if h is not None], dtype=np.float32)
+        y_hidden     = np.array([yv for yv, hv in zip(y, has_hidden) if hv], dtype=np.int32)
+    else:
+        X_hidden_arr = None
+        y_hidden     = None
+
+    return X_entropy, X_hidden_arr, y, y_hidden
 
 
 def evaluate_classifier(train_results: list[SampleResult],
@@ -191,8 +198,8 @@ def evaluate_classifier(train_results: list[SampleResult],
 
     print(f"\n  [{label}] Training classifiers...")
 
-    X_train, H_train, y_train = build_xy_from_results(train_results)
-    X_test,  H_test,  y_test  = build_xy_from_results(test_results)
+    X_train, H_train, y_train, y_train_h = build_xy_from_results(train_results)
+    X_test,  H_test,  y_test,  y_test_h  = build_xy_from_results(test_results)
 
     metrics = {}
 
@@ -243,15 +250,15 @@ def evaluate_classifier(train_results: list[SampleResult],
         metrics["cnn_f1"] = metrics["cnn_precision"] = metrics["cnn_recall"] = None
 
     # ── 2. Logistic Regression on hidden states ───────────────────────────────
-    if H_train is not None and H_test is not None:
+    if H_train is not None and H_test is not None and y_train_h is not None and y_test_h is not None:
         try:
             lr = LogisticRegression(C=0.1, max_iter=1000)
-            lr.fit(H_train, y_train)
+            lr.fit(H_train, y_train_h)
             preds_lr = lr.predict(H_test)
 
-            metrics["lr_f1"]        = f1_score(y_test, preds_lr, zero_division=0)
-            metrics["lr_precision"] = precision_score(y_test, preds_lr, zero_division=0)
-            metrics["lr_recall"]    = recall_score(y_test, preds_lr, zero_division=0)
+            metrics["lr_f1"]        = f1_score(y_test_h, preds_lr, zero_division=0)
+            metrics["lr_precision"] = precision_score(y_test_h, preds_lr, zero_division=0)
+            metrics["lr_recall"]    = recall_score(y_test_h, preds_lr, zero_division=0)
             print(f"    LR      F1={metrics['lr_f1']:.4f}  "
                   f"P={metrics['lr_precision']:.4f}  R={metrics['lr_recall']:.4f}")
         except Exception as e:
