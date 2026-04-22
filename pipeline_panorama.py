@@ -251,6 +251,13 @@ def evaluate_pipeline(test_results, cnn_preds, probe, fallback, label):
     if probe is None:
         return {"cnn_f1": cnn_f1, "cnn_precision": cnn_prec, "cnn_recall": cnn_rec}
 
+    # LR-only metrics (probe applied to all samples, no CNN filter)
+    lr_preds = np.array([1 if probe_verify(r, probe, fallback) else 0 for r in test_results])
+    lr_f1   = f1_score(y_true, lr_preds, zero_division=0)
+    lr_prec = precision_score(y_true, lr_preds, zero_division=0)
+    lr_rec  = recall_score(y_true, lr_preds, zero_division=0)
+    print(f"  [LR  only]  F1={lr_f1:.4f}  P={lr_prec:.4f}  R={lr_rec:.4f}")
+
     # CNN → Probe pipeline
     pipeline_preds = []
     for i, r in enumerate(test_results):
@@ -274,6 +281,7 @@ def evaluate_pipeline(test_results, cnn_preds, probe, fallback, label):
 
     return {
         "cnn_f1": cnn_f1, "cnn_precision": cnn_prec, "cnn_recall": cnn_rec,
+        "lr_f1": lr_f1, "lr_precision": lr_prec, "lr_recall": lr_rec,
         "pipeline_f1": pip_f1, "pipeline_precision": pip_prec, "pipeline_recall": pip_rec,
         "TP": tp, "FP": fp, "FN": fn, "TN": tn,
     }
@@ -405,18 +413,19 @@ def main():
     print("\n" + "=" * 62)
     print("  FINAL SUMMARY")
     print("=" * 62)
-    print(f"  {'Content Type':<35}  {'CNN F1':>7}  {'Pipe F1':>7}  {'Pipe P':>7}  {'Pipe R':>7}")
-    print(f"  {'-'*67}")
-    print(f"  {'Combined':<35}  {metrics['cnn_f1']:7.4f}  ", end="")
-    if "pipeline_f1" in metrics:
-        print(f"{metrics['pipeline_f1']:7.4f}  {metrics['pipeline_precision']:7.4f}  {metrics['pipeline_recall']:7.4f}")
-    else:
-        print()
+    print(f"  {'Content Type':<35}  {'CNN F1':>7}  {'LR F1':>7}  {'Pipe F1':>7}  {'Pipe P':>7}  {'Pipe R':>7}")
+    print(f"  {'-'*77}")
+    lr_f1_c   = metrics.get("lr_f1", float("nan"))
+    pipe_f1_c = metrics.get("pipeline_f1", float("nan"))
+    pipe_p_c  = metrics.get("pipeline_precision", float("nan"))
+    pipe_r_c  = metrics.get("pipeline_recall", float("nan"))
+    print(f"  {'Combined':<35}  {metrics['cnn_f1']:7.4f}  {lr_f1_c:7.4f}  {pipe_f1_c:7.4f}  {pipe_p_c:7.4f}  {pipe_r_c:7.4f}")
     for ct, m in per_type_metrics.items():
+        lr_f1   = m.get("lr_f1", float("nan"))
         pipe_f1 = m.get("pipeline_f1", float("nan"))
         pipe_p  = m.get("pipeline_precision", float("nan"))
         pipe_r  = m.get("pipeline_recall", float("nan"))
-        print(f"  {ct:<35}  {m['cnn_f1']:7.4f}  {pipe_f1:7.4f}  {pipe_p:7.4f}  {pipe_r:7.4f}")
+        print(f"  {ct:<35}  {m['cnn_f1']:7.4f}  {lr_f1:7.4f}  {pipe_f1:7.4f}  {pipe_p:7.4f}  {pipe_r:7.4f}")
     print("=" * 62)
 
 
