@@ -158,8 +158,10 @@ def build_xy_from_results(results: list[SampleResult]):
         X_entropy.append(ent)
 
         # Hidden state: use first token's hidden state if available
-        if r.all_hidden_states:
-            X_hidden.append(r.all_hidden_states[0])
+        # Use getattr for backward compatibility with older pkl files
+        all_hs = getattr(r, 'all_hidden_states', [])
+        if all_hs:
+            X_hidden.append(all_hs[0])
         else:
             X_hidden.append(None)
 
