@@ -283,7 +283,7 @@ def experiment_1_zero_shot(probe: ModelProbe, results_dir: str, max_samples: int
 
     # Load existing UnlearnPII results
     unlearnpii_dir = os.path.join(os.path.dirname(__file__),
-                                  "results_llama8b_20260401_1429")
+                                  "results_llama8b_unlearnpii_new")
     unlearnpii_pkl = os.path.join(unlearnpii_dir, "A_pii.pkl")
     if not os.path.exists(unlearnpii_pkl):
         print(f"  ERROR: UnlearnPII results not found at {unlearnpii_pkl}")
