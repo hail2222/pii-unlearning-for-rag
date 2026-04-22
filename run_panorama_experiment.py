@@ -139,12 +139,11 @@ def build_xy_from_results(results: list[SampleResult]):
     """
     Build (X, y) arrays for CNN + Linear Probe from SampleResult list.
     X_entropy: (N, seq_len) — entropy sequences (padded/truncated to MAX_NEW_TOKENS)
-    X_hidden:  (N, hidden_dim) — Layer probe hidden states at token 0 of each sample
+    X_hidden:  (N, hidden_dim) — per-sample hidden state feature:
+               1st priority: all_hidden_states[0] (first generated token)
+               2nd priority: mean(red_flag_hidden_states) (for older pkl files)
     y:         (N,) — 1 if PII was generated, 0 otherwise
     """
-    from sklearn.preprocessing import label_binarize
-    import torch
-
     max_len = MAX_NEW_TOKENS
     X_entropy, X_hidden, y = [], [], []
 
@@ -157,11 +156,14 @@ def build_xy_from_results(results: list[SampleResult]):
             ent = ent + [0.0] * (max_len - len(ent))
         X_entropy.append(ent)
 
-        # Hidden state: use first token's hidden state if available
-        # Use getattr for backward compatibility with older pkl files
-        all_hs = getattr(r, 'all_hidden_states', [])
+        # Hidden state: try all_hidden_states first, then red_flag_hidden_states
+        all_hs  = getattr(r, 'all_hidden_states',   [])
+        rflag_hs = getattr(r, 'red_flag_hidden_states', [])
         if all_hs:
-            X_hidden.append(all_hs[0])
+            X_hidden.append(np.array(all_hs[0], dtype=np.float32))
+        elif rflag_hs:
+            # Use mean of red-flag hidden states as sample-level feature
+            X_hidden.append(np.mean(np.stack(rflag_hs), axis=0).astype(np.float32))
         else:
             X_hidden.append(None)
 
