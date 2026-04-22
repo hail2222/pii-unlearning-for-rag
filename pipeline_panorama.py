@@ -56,6 +56,9 @@ def parse_args():
     p.add_argument("--fallback",    type=str,   choices=["keep", "drop"], default="keep")
     p.add_argument("--max-samples", type=int,   default=None,
                    help="Limit total samples loaded (for quick testing)")
+    p.add_argument("--train-dir",   type=str,   default=None,
+                   help="If set, load train data from this dir (A_pii.pkl) instead of PANORAMA split. "
+                        "Enables zero-shot transfer: train on UnlearnPII, test on PANORAMA.")
     return p.parse_args()
 
 
@@ -276,27 +279,39 @@ def evaluate_pipeline(test_results, cnn_preds, probe, fallback, label):
 def main():
     args = parse_args()
 
+    mode = "zero-shot (UnlearnPII→PANORAMA)" if args.train_dir else "PANORAMA-only"
     print("=" * 62)
-    print("  PANORAMA Pipeline: TwoChannelCNN → Linear Probe")
+    print(f"  PANORAMA Pipeline: TwoChannelCNN → Linear Probe  [{mode}]")
     print(f"  Results dir : {args.results_dir}")
+    print(f"  Train dir   : {args.train_dir or 'PANORAMA split'}")
     print(f"  Fallback    : {args.fallback}")
     print(f"  Device      : {args.device}")
     print("=" * 62)
 
     import json
-    ckpt_dir = os.path.join(args.results_dir, "pipeline_ckpt")
+    ckpt_suffix = "zeroshot" if args.train_dir else "panorama"
+    ckpt_dir = os.path.join(args.results_dir, f"pipeline_ckpt_{ckpt_suffix}")
     os.makedirs(ckpt_dir, exist_ok=True)
 
-    # Load all PANORAMA results
+    # Load PANORAMA results (always used as test)
     print("\nLoading PANORAMA results...")
     all_results = load_panorama_results(args.results_dir, args.max_samples)
 
     pos_total = sum(1 for r in all_results if r.pii_token_positions)
     neg_total = len(all_results) - pos_total
-    print(f"\nTotal: {len(all_results)} samples  (pos={pos_total}, neg={neg_total})")
+    print(f"\nTotal PANORAMA: {len(all_results)} samples  (pos={pos_total}, neg={neg_total})")
 
-    # Stratified split
-    train, test = stratified_split(all_results, args.test_ratio, args.seed)
+    if args.train_dir:
+        # Zero-shot: train on UnlearnPII A_pii, test on all PANORAMA
+        train_pkl = os.path.join(args.train_dir, "A_pii.pkl")
+        with open(train_pkl, "rb") as f:
+            train = pickle.load(f)
+        test = all_results
+        print(f"Train (UnlearnPII): {len(train)} samples")
+    else:
+        # PANORAMA-only: stratified split
+        train, test = stratified_split(all_results, args.test_ratio, args.seed)
+
     pos_train = sum(1 for r in train if r.pii_token_positions)
     pos_test  = sum(1 for r in test  if r.pii_token_positions)
     print(f"Train: {len(train)} (pos={pos_train}, neg={len(train)-pos_train})")
