@@ -304,11 +304,13 @@ def main():
 
         n_suppressed = 0
         sample_logs = []
+        per_type_counts = {}  # {ct: {"n_detected": , "n_suppressed": , "n_pii": }}
 
         for r, sf in tqdm(detected_pii, desc=f"alpha={alpha}"):
             pii_str = get_pii_string(r)
             if not pii_str:
                 continue
+            ct = getattr(r, "_content_type", "unknown")
 
             new_text = generate_steered(
                 lm_probe, r.prompt, v_steer, alpha,
@@ -319,7 +321,14 @@ def main():
             if suppressed:
                 n_suppressed += 1
 
+            if ct not in per_type_counts:
+                per_type_counts[ct] = {"n_detected": 0, "n_suppressed": 0}
+            per_type_counts[ct]["n_detected"] += 1
+            if suppressed:
+                per_type_counts[ct]["n_suppressed"] += 1
+
             sample_logs.append({
+                "content_type": ct,
                 "pii_string": pii_str,
                 "suppressed": suppressed,
                 "steer_from": sf,
@@ -330,6 +339,26 @@ def main():
         suppression_rate = n_suppressed / n_pii_detected if n_pii_detected > 0 else 0
         overall_rate     = n_suppressed / n_pii if n_pii > 0 else 0
 
+        # Per-type suppression rates
+        n_pii_per_type = {}
+        for r in pii_test:
+            ct = getattr(r, "_content_type", "unknown")
+            n_pii_per_type[ct] = n_pii_per_type.get(ct, 0) + 1
+
+        per_type_metrics = {}
+        for ct, counts in per_type_counts.items():
+            nd = counts["n_detected"]
+            ns = counts["n_suppressed"]
+            np_ct = n_pii_per_type.get(ct, 0)
+            per_type_metrics[ct] = {
+                "n_pii": np_ct,
+                "n_detected": nd,
+                "n_suppressed": ns,
+                "detection_rate": nd / np_ct if np_ct > 0 else 0,
+                "suppression_rate": ns / nd if nd > 0 else 0,
+                "overall_rate": ns / np_ct if np_ct > 0 else 0,
+            }
+
         all_alpha_metrics[str(alpha)] = {
             "alpha": alpha,
             "n_pii_detected": n_pii_detected,
@@ -338,11 +367,16 @@ def main():
             "suppression_rate": suppression_rate,
             "overall_suppression_rate": overall_rate,
             "false_trigger_rate": false_trig_rate,
+            "per_type": per_type_metrics,
             "sample_logs": sample_logs,
         }
         sweep_summary.append((alpha, detection_rate, suppression_rate, overall_rate))
 
         print(f"  alpha={alpha:6.1f}  suppress={suppression_rate:.1%}  overall={overall_rate:.1%}")
+        print(f"  {'Content Type':<35}  {'Detected':>8}  {'Suppressed':>10}  {'Overall':>8}")
+        print(f"  {'-'*65}")
+        for ct, m in per_type_metrics.items():
+            print(f"  {ct:<35}  {m['n_detected']:>8}  {m['n_suppressed']:>9} ({m['suppression_rate']:.1%})  {m['overall_rate']:.1%}")
 
         # ── Save after each alpha (crash-safe) ───────────────────────────────
         out_path = os.path.join(args.results_dir, "steering_metrics.json")
