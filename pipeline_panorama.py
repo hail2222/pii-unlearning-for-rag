@@ -64,9 +64,10 @@ def parse_args():
 
 # ── Data utils ────────────────────────────────────────────────────────────────
 
-def load_panorama_results(results_dir: str, max_samples: int = None) -> list:
-    """Load all exp2_*.pkl files and return combined list of SampleResult."""
+def load_panorama_results(results_dir: str, max_samples: int = None):
+    """Load all exp2_*.pkl files and return (all_results, per_type_dict)."""
     all_results = []
+    per_type = {}
     for ct in ALL_CONTENT_TYPES:
         pkl_path = os.path.join(results_dir, f"exp2_{ct}.pkl")
         if not os.path.exists(pkl_path):
@@ -74,6 +75,10 @@ def load_panorama_results(results_dir: str, max_samples: int = None) -> list:
             continue
         with open(pkl_path, "rb") as f:
             results = pickle.load(f)
+        # Tag each result with its content type
+        for r in results:
+            r._content_type = ct
+        per_type[ct] = results
         all_results.extend(results)
         pos = sum(1 for r in results if r.pii_token_positions)
         print(f"  [{ct:35s}] {len(results):4d} samples  (pos={pos}, neg={len(results)-pos})")
@@ -81,7 +86,7 @@ def load_panorama_results(results_dir: str, max_samples: int = None) -> list:
             break
     if max_samples:
         all_results = all_results[:max_samples]
-    return all_results
+    return all_results, per_type
 
 
 def stratified_split(results: list, test_ratio: float, seed: int):
@@ -295,7 +300,7 @@ def main():
 
     # Load PANORAMA results (always used as test)
     print("\nLoading PANORAMA results...")
-    all_results = load_panorama_results(args.results_dir, args.max_samples)
+    all_results, per_type_results = load_panorama_results(args.results_dir, args.max_samples)
 
     pos_total = sum(1 for r in all_results if r.pii_token_positions)
     neg_total = len(all_results) - pos_total
@@ -367,23 +372,51 @@ def main():
     print("=" * 62)
     metrics = evaluate_pipeline(test, cnn_preds, probe, args.fallback, "Combined")
 
+    # ── Per-type evaluation ───────────────────────────────────────────────────
+    print("\n" + "=" * 62)
+    print("  Per-type Pipeline Evaluation (combined model → per-type test)")
+    print("=" * 62)
+
+    # Build index: test sample → index in cnn_preds
+    test_idx_map = {id(r): i for i, r in enumerate(test)}
+
+    per_type_metrics = {}
+    for ct in ALL_CONTENT_TYPES:
+        if ct not in per_type_results:
+            continue
+        # Filter test samples belonging to this content type
+        ct_test = [r for r in test if getattr(r, "_content_type", None) == ct]
+        if not ct_test:
+            continue
+        ct_idxs = [test_idx_map[id(r)] for r in ct_test]
+        ct_preds = cnn_preds[ct_idxs]
+        ct_metrics = evaluate_pipeline(ct_test, ct_preds, probe, args.fallback, ct)
+        per_type_metrics[ct] = ct_metrics
+        print(f"  Content type: {ct}")
+
     # ── Save results ──────────────────────────────────────────────────────────
     out_path = os.path.join(args.results_dir, "pipeline_metrics.json")
+    full_metrics = {"combined": metrics, "per_type": per_type_metrics}
     with open(out_path, "w") as f:
-        json.dump(metrics, f, indent=2)
+        json.dump(full_metrics, f, indent=2)
     print(f"\n  Saved → {out_path}")
 
     # ── Final summary ─────────────────────────────────────────────────────────
     print("\n" + "=" * 62)
     print("  FINAL SUMMARY")
     print("=" * 62)
-    print(f"  {'Method':<30}  {'F1':>6}  {'Prec':>6}  {'Rec':>6}")
-    print(f"  {'-'*54}")
-    print(f"  {'CNN only (2ch entropy)':<30}  {metrics['cnn_f1']:6.4f}  "
-          f"{metrics['cnn_precision']:6.4f}  {metrics['cnn_recall']:6.4f}")
+    print(f"  {'Content Type':<35}  {'CNN F1':>7}  {'Pipe F1':>7}  {'Pipe P':>7}  {'Pipe R':>7}")
+    print(f"  {'-'*67}")
+    print(f"  {'Combined':<35}  {metrics['cnn_f1']:7.4f}  ", end="")
     if "pipeline_f1" in metrics:
-        print(f"  {'CNN → Probe (pipeline)':<30}  {metrics['pipeline_f1']:6.4f}  "
-              f"{metrics['pipeline_precision']:6.4f}  {metrics['pipeline_recall']:6.4f}")
+        print(f"{metrics['pipeline_f1']:7.4f}  {metrics['pipeline_precision']:7.4f}  {metrics['pipeline_recall']:7.4f}")
+    else:
+        print()
+    for ct, m in per_type_metrics.items():
+        pipe_f1 = m.get("pipeline_f1", float("nan"))
+        pipe_p  = m.get("pipeline_precision", float("nan"))
+        pipe_r  = m.get("pipeline_recall", float("nan"))
+        print(f"  {ct:<35}  {m['cnn_f1']:7.4f}  {pipe_f1:7.4f}  {pipe_p:7.4f}  {pipe_r:7.4f}")
     print("=" * 62)
 
 
