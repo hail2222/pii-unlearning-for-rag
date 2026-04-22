@@ -330,7 +330,7 @@ def main():
         suppression_rate = n_suppressed / n_pii_detected if n_pii_detected > 0 else 0
         overall_rate     = n_suppressed / n_pii if n_pii > 0 else 0
 
-        all_alpha_metrics[alpha] = {
+        all_alpha_metrics[str(alpha)] = {
             "alpha": alpha,
             "n_pii_detected": n_pii_detected,
             "n_suppressed": n_suppressed,
@@ -344,20 +344,20 @@ def main():
 
         print(f"  alpha={alpha:6.1f}  suppress={suppression_rate:.1%}  overall={overall_rate:.1%}")
 
-    # ── Save & print summary ──────────────────────────────────────────────────
-    metrics = {
-        "n_pii_test": n_pii,
-        "n_neg_test": len(neg_test),
-        "n_pii_detected": n_pii_detected,
-        "n_false_trigger": n_false_trigger,
-        "detection_rate": detection_rate,
-        "false_trigger_rate": false_trig_rate,
-        "alpha_results": all_alpha_metrics,
-    }
-
-    out_path = os.path.join(args.results_dir, "steering_metrics.json")
-    with open(out_path, "w") as f:
-        json.dump(metrics, f, indent=2)
+        # ── Save after each alpha (crash-safe) ───────────────────────────────
+        out_path = os.path.join(args.results_dir, "steering_metrics.json")
+        metrics_so_far = {
+            "n_pii_test": n_pii,
+            "n_neg_test": len(neg_test),
+            "n_pii_detected": n_pii_detected,
+            "n_false_trigger": n_false_trigger,
+            "detection_rate": detection_rate,
+            "false_trigger_rate": false_trig_rate,
+            "alpha_results": all_alpha_metrics,
+        }
+        with open(out_path, "w") as f:
+            json.dump(metrics_so_far, f, indent=2)
+        print(f"  Saved → {out_path}")
 
     print("\n" + "=" * 62)
     print("  STEERING RESULTS SUMMARY")
@@ -369,7 +369,7 @@ def main():
     print(f"  {'Alpha':>8}  {'Suppress/Detected':>18}  {'Overall':>8}")
     print(f"  {'-'*40}")
     for alpha, det, sup, ov in sweep_summary:
-        n_sup = all_alpha_metrics[alpha]["n_suppressed"]
+        n_sup = all_alpha_metrics[str(alpha)]["n_suppressed"]
         print(f"  {alpha:8.1f}  {n_sup}/{n_pii_detected} ({sup:.1%})          {ov:.1%}")
     print(f"\n  Saved → {out_path}")
     print("=" * 62)
