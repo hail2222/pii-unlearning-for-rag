@@ -197,6 +197,13 @@ def generate_steered(
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+def steer_from(r, default: int = 0) -> int:
+    """Return the token index to start steering from (first red_flag - 1)."""
+    if r.red_flag_indices:
+        return max(0, min(r.red_flag_indices) - 1)
+    return default
+
+
 def get_pii_string(r) -> str:
     if not r.pii_token_positions or not r.tokens:
         return ""
@@ -213,7 +220,10 @@ def main():
     parser.add_argument("--pipeline-ckpt",  required=True,
                         help="Dir with cnn.pt and probe.pkl (from pipeline_panorama.py)")
     parser.add_argument("--model-name",     default=MODEL_NAME)
-    parser.add_argument("--alpha",          type=float, default=20.0)
+    parser.add_argument("--alpha",          type=float, default=20.0,
+                        help="Single alpha value (used when --alpha-sweep not set)")
+    parser.add_argument("--alpha-sweep",    type=float, nargs="+", default=None,
+                        help="Sweep multiple alpha values, e.g. --alpha-sweep 5 10 20 40 80")
     parser.add_argument("--steer-from",     type=int,   default=0,
                         help="Apply steering from this token index (0 = always on)")
     parser.add_argument("--test-ratio",     type=float, default=0.2)
@@ -279,59 +289,70 @@ def main():
         probe_layer=PROBE_LAYER,
     )
 
-    # ── Pass 2: Steered re-generation for detected PII samples ───────────────
-    print("\n" + "=" * 62)
-    print(f"  Pass 2: Steered Re-generation ({n_pii_detected} samples)")
-    print("=" * 62)
+    # ── Pass 2: Steered re-generation (single or sweep) ──────────────────────
+    alpha_list = args.alpha_sweep if args.alpha_sweep else [args.alpha]
+    detected_pii = [(r, steer_from(r, args.steer_from)) for r, d in zip(pii_test, pii_detected) if d]
 
-    n_suppressed = 0
-    sample_logs = []
-
-    detected_pii = [(r, d) for r, d in zip(pii_test, pii_detected) if d]
-    for r, _ in tqdm(detected_pii, desc="Steered generation"):
-        pii_str = get_pii_string(r)
-        if not pii_str:
-            continue
-
-        # Steer from first red_flag position if available
-        steer_from = args.steer_from
-        if r.red_flag_indices:
-            steer_from = max(0, min(r.red_flag_indices) - 1)
-
-        new_text = generate_steered(
-            lm_probe, r.prompt, v_steer, args.alpha,
-            steer_from_token=steer_from,
-        )
-
-        suppressed = pii_str.lower() not in new_text.lower()
-        if suppressed:
-            n_suppressed += 1
-
-        sample_logs.append({
-            "pii_string": pii_str,
-            "suppressed": suppressed,
-            "steer_from": steer_from,
-            "original_text_snippet": r.generated_text[:100],
-            "steered_text_snippet": new_text[:100],
-        })
-
-    # ── Metrics ───────────────────────────────────────────────────────────────
     n_pii = len(pii_test)
-    suppression_rate = n_suppressed / n_pii_detected if n_pii_detected > 0 else 0
-    overall_rate     = n_suppressed / n_pii if n_pii > 0 else 0
+    all_alpha_metrics = {}
+    sweep_summary = []
 
+    for alpha in alpha_list:
+        print("\n" + "=" * 62)
+        print(f"  Pass 2: Steered Re-generation  alpha={alpha}  ({n_pii_detected} samples)")
+        print("=" * 62)
+
+        n_suppressed = 0
+        sample_logs = []
+
+        for r, sf in tqdm(detected_pii, desc=f"alpha={alpha}"):
+            pii_str = get_pii_string(r)
+            if not pii_str:
+                continue
+
+            new_text = generate_steered(
+                lm_probe, r.prompt, v_steer, alpha,
+                steer_from_token=sf,
+            )
+
+            suppressed = pii_str.lower() not in new_text.lower()
+            if suppressed:
+                n_suppressed += 1
+
+            sample_logs.append({
+                "pii_string": pii_str,
+                "suppressed": suppressed,
+                "steer_from": sf,
+                "original_text_snippet": r.generated_text[:100],
+                "steered_text_snippet": new_text[:100],
+            })
+
+        suppression_rate = n_suppressed / n_pii_detected if n_pii_detected > 0 else 0
+        overall_rate     = n_suppressed / n_pii if n_pii > 0 else 0
+
+        all_alpha_metrics[alpha] = {
+            "alpha": alpha,
+            "n_pii_detected": n_pii_detected,
+            "n_suppressed": n_suppressed,
+            "detection_rate": detection_rate,
+            "suppression_rate": suppression_rate,
+            "overall_suppression_rate": overall_rate,
+            "false_trigger_rate": false_trig_rate,
+            "sample_logs": sample_logs,
+        }
+        sweep_summary.append((alpha, detection_rate, suppression_rate, overall_rate))
+
+        print(f"  alpha={alpha:6.1f}  suppress={suppression_rate:.1%}  overall={overall_rate:.1%}")
+
+    # ── Save & print summary ──────────────────────────────────────────────────
     metrics = {
-        "alpha": args.alpha,
         "n_pii_test": n_pii,
         "n_neg_test": len(neg_test),
         "n_pii_detected": n_pii_detected,
-        "n_suppressed": n_suppressed,
         "n_false_trigger": n_false_trigger,
         "detection_rate": detection_rate,
-        "suppression_rate": suppression_rate,
-        "overall_suppression_rate": overall_rate,
         "false_trigger_rate": false_trig_rate,
-        "sample_logs": sample_logs,
+        "alpha_results": all_alpha_metrics,
     }
 
     out_path = os.path.join(args.results_dir, "steering_metrics.json")
@@ -339,15 +360,17 @@ def main():
         json.dump(metrics, f, indent=2)
 
     print("\n" + "=" * 62)
-    print("  STEERING RESULTS")
+    print("  STEERING RESULTS SUMMARY")
     print("=" * 62)
     print(f"  Total PII test samples  : {n_pii}")
-    print(f"  ├─ Detected (CNN+LR)    : {n_pii_detected:4d}  ({detection_rate:.1%})")
-    print(f"  ├─ PII suppressed       : {n_suppressed:4d}  ({suppression_rate:.1%} of detected)")
-    print(f"  └─ Overall removal rate : {n_suppressed}/{n_pii}  ({overall_rate:.1%})")
-    print(f"")
-    print(f"  Total non-PII samples   : {len(neg_test)}")
-    print(f"  └─ False trigger (CNN+LR): {n_false_trigger}/{len(neg_test)}  ({false_trig_rate:.1%})")
+    print(f"  ├─ Detected (CNN+LR)    : {n_pii_detected}  ({detection_rate:.1%})")
+    print(f"  └─ False trigger        : {n_false_trigger}/{len(neg_test)}  ({false_trig_rate:.1%})")
+    print()
+    print(f"  {'Alpha':>8}  {'Suppress/Detected':>18}  {'Overall':>8}")
+    print(f"  {'-'*40}")
+    for alpha, det, sup, ov in sweep_summary:
+        n_sup = all_alpha_metrics[alpha]["n_suppressed"]
+        print(f"  {alpha:8.1f}  {n_sup}/{n_pii_detected} ({sup:.1%})          {ov:.1%}")
     print(f"\n  Saved → {out_path}")
     print("=" * 62)
 
